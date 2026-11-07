@@ -397,7 +397,8 @@
         .company-name { font-size: 0.76rem; color: var(--text-sub); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .shop-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; letter-spacing: normal !important; }
         .info-main { align-items: flex-start; }
-        .info-main .status-dot { margin-top: 5px; flex: none; }
+        .info-main .status-dot { margin-top: 4px; flex: none; }
+        .info-main.no-company .status-dot { margin-top: 8px; }
         .info-company { font-size: 0.72rem; color: #5f768c; margin-top: 1px; }
         .customer-item { height: 250px; }
     
@@ -1281,7 +1282,7 @@
             div.className = 'customer-item'; div.dataset.id = c.id; if(c.id === highlightedId) div.classList.add('highlighted');
             
             div.innerHTML = `<div style="flex:1;">
-                <div class="info-main">
+                <div class="info-main${np.company ? "" : " no-company"}">
                     <span class="status-dot" style="background:${color};"></span>
                     <span class="name-lines">${np.company ? `<span class="company-name">${np.company}</span>` : ""}<span class="shop-name">${np.shop}</span></span>
                     ${creditHtml}
