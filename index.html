@@ -554,7 +554,7 @@
         
         <div class="settings-section sec-settings">
             <label>ストレージ状況</label>
-            <div style="font-size:0.8rem; margin-bottom:8px;">現在のDB: <span id="current-db-name" style="font-weight:600;"></span></div>
+            <div style="font-size:0.8rem; margin-bottom:8px;">顧客データ: <span id="current-db-name" style="font-weight:600;"></span></div>
             <div id="storage-list" style="max-height:100px; overflow-y:auto; border:1px solid #eee; padding:5px;"></div>
         </div>
 
@@ -636,7 +636,7 @@
         } else {
             document.getElementById('map-placeholder-msg').innerHTML = "設定からAPIキーを<br>設定してください";
         }
-        document.getElementById('current-db-name').innerText = DB_NAME;
+        document.getElementById('current-db-name').innerText = (() => { try { const raw = localStorage.getItem(DB_NAME); if(!raw) return "0件"; return JSON.parse(raw).length.toLocaleString() + "件（約" + (new Blob([raw]).size / 1048576).toFixed(1) + "MB）"; } catch(e) { return "-"; } })();
         
         changeRegMode();
     };
@@ -707,7 +707,8 @@
             if(key.startsWith('map_db')) {
                 const div = document.createElement('div'); 
                 div.style.display="flex"; div.style.justifyContent="space-between"; div.style.padding="8px"; div.style.borderBottom="1px solid #eee";
-                div.innerHTML = `<div style="font-weight:500;font-size:0.85rem;">${key}</div><button onclick="forceDelete('${key}')" style="background:#fff;border:1px solid #ddd;border-radius:2px;font-size:0.7rem;padding:2px 8px;cursor:pointer;">削除</button>`;
+                const _raw = localStorage.getItem(key) || ""; const _label = key === DB_NAME ? `顧客データ（${db.length.toLocaleString()}件・約${(new Blob([_raw]).size / 1048576).toFixed(1)}MB）` : key;
+                div.innerHTML = `<div style="font-weight:500;font-size:0.85rem;">${_label}</div><button onclick="forceDelete('${key}')" style="background:#fff;border:1px solid #ddd;border-radius:2px;font-size:0.7rem;padding:2px 8px;cursor:pointer;">削除</button>`;
                 storageList.appendChild(div);
             }
         }
@@ -750,7 +751,7 @@
         render(); 
     }
 
-    function forceDelete(key) { if(confirm(`"${key}" を削除しますか？`)) { localStorage.removeItem(key); openSettings(); if(key === DB_NAME) { db = []; resetAndRender(); updateMapPins([]); } alert("削除しました"); } }
+    function forceDelete(key) { const _n = key === DB_NAME ? "顧客データ" : key; if(confirm(`"${_n}" を削除しますか？`)) { localStorage.removeItem(key); openSettings(); if(key === DB_NAME) { db = []; resetAndRender(); updateMapPins([]); } alert("削除しました"); } }
 
     async function saveKeyAndInit() { const k=document.getElementById('apiKey').value; if(!k)return alert("キーを入力してください"); localStorage.setItem('map_apiKey', k); await initSystem(k); alert("保存しました"); }
       
