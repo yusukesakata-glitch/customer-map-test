@@ -793,7 +793,7 @@
                 const div = document.getElementById('google-map-view');
                 map = new Map(div, { center:{lat:35.68, lng:139.76}, zoom:13, mapId: "DEMO_MAP_ID", mapTypeControl: false, streetViewControl: false });
                 infoWindow = new google.maps.InfoWindow();
-                map.addListener('idle', () => { const wasPin = isPinClick; isPinClick = false; if(!mapSyncMode || wasPin || Date.now() < (window._syncSuppressUntil || 0)) return; clearTimeout(window._idleTimer); window._idleTimer = setTimeout(() => { if(mapSyncMode) resetAndRender(); }, 250); });
+                map.addListener('idle', () => { const wasPin = isPinClick; isPinClick = false; if(!mapSyncMode || wasPin) return; const wait = (window._syncSuppressUntil || 0) - Date.now(); clearTimeout(window._idleTimer); window._idleTimer = setTimeout(() => { if(mapSyncMode) resetAndRender(); }, wait > 0 ? wait + 250 : 250); });
                 map.addListener('dragstart', () => { if(watchId) { isTrackingLocked=false; nearbySort=null; updateGpsBtnState(); } });
                 map.addListener('click', () => {
                     if (highlightedId) { highlightedId = null; render(); }
@@ -1007,6 +1007,7 @@
             pinsToShow = mapBaseData.slice(0, limit);
         }
 
+        if(highlightedId && !pinsToShow.some(c => c.id === highlightedId)) { const hc = db.find(c => c.id === highlightedId && c.lat && c.lng); if(hc) pinsToShow = pinsToShow.concat(hc); }
         const grouped = {};
         pinsToShow.forEach(c => {
             if(c.lat && c.lng) {
