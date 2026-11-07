@@ -1183,10 +1183,12 @@
         const key = sortKey === 'pct' ? 'pct' : 'total';
         const dirMul = sortDir === 'asc' ? 1 : -1;
         const byKey = (a, b) => dirMul * (a[key] - b[key]) || (b.total - a.total);
-        const prefRank = {};
-        [...rows].sort(byKey).forEach(r => { if(!(r.block in prefRank)) prefRank[r.block] = Object.keys(prefRank).length; });
+        const prefRank = {}, blockRank = {};
+        const keySorted = [...rows].sort(byKey);
+        keySorted.forEach(r => { if(!(r.pref in prefRank)) prefRank[r.pref] = Object.keys(prefRank).length; });
+        keySorted.forEach(r => { if(!(r.block in blockRank)) blockRank[r.block] = Object.keys(blockRank).length; });
         const rankOf = p => (p === "" ? 9999 : prefRank[p]);
-        rows.sort((a, b) => (rankOf(a.block) - rankOf(b.block)) || byKey(a, b));
+        rows.sort((a, b) => (rankOf(a.pref) - rankOf(b.pref)) || (blockRank[a.block] - blockRank[b.block]) || byKey(a, b));
         document.getElementById('coverage-summary').innerHTML = `${targetReps.length ? '自分の担当' : '全担当（自分のピン未設定）'}：訪問済み <b>${visitedAll.toLocaleString()}</b> / ${targets.length.toLocaleString()}件`;
         const list = document.getElementById('coverage-list'); list.innerHTML = "";
         const addRow = (r, clickable) => {
