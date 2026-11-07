@@ -194,7 +194,7 @@
             flex: 1; padding: 9px 0; min-height: 42px; border-radius: 10px;
             background: #fbfbf9; border: 1px solid #dbe4ec;
             display: flex; align-items: center; justify-content: center; gap: 6px;
-            text-decoration: none; font-size: 0.8rem; font-weight: 700; color: var(--navy-dark);
+            text-decoration: none; font-size: 0.76rem; font-weight: 700; color: var(--navy-dark); white-space: nowrap;
             cursor: pointer; font-family: var(--font-serif);
             box-sizing: border-box; margin: 0; appearance: none; -webkit-appearance: none; line-height: 1.5;
         }
@@ -366,8 +366,8 @@
         .list-search-box { padding: 8px 12px 0; }
         .list-search-box input { padding-top: 8px; padding-bottom: 8px; }
         .search-go-btn { min-height: 40px; padding: 0 16px; font-size: 0.82rem; }
-        .counts-row { padding: 9px 12px 0; gap: 14px; }
-        .counts-row .n { font-size: 20px; }
+        .counts-row { padding: 9px 12px 0; gap: 10px; }
+        .counts-row .n { font-size: 18px; }
         #stats-area { padding: 8px 12px 0; }
         .stats-item { padding: 5px 11px; font-size: 0.75rem; }
         .sync-float { padding: 4px 10px; font-size: 0.72rem; margin-top: 6px; }
@@ -619,7 +619,7 @@
         saveDB();
         if(btn) {
             btn.classList.add('visit-done');
-            btn.innerHTML = '<svg class="svg-icon" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> 訪問済';
+            btn.textContent = '訪問済';
             const card = btn.closest('.customer-item');
             if(card) {
                 let nb = card.querySelector('.note-box');
@@ -1266,10 +1266,7 @@
                     <svg class="svg-icon" viewBox="0 0 24 24"><path d="M21.71 11.29l-9-9c-.39-.39-1.02-.39-1.41 0l-9 9c-.39.39-.39 1.02 0 1.41l9 9c.39.39 1.02.39 1.41 0l9-9c.39-.39.39-1.02 0-1.41zM14 14.5V12h-4v3H8v-4c0-.55.45-1 1-1h5V7.5l3.5 3.5-3.5 3.5z"/></svg>
                     経路
                 </a>
-                <button onclick="visitShop('${c.id}', this)" class="action-btn${(c.note || "").includes(todayStamp() + "訪問") ? ' visit-done' : ''}">
-                    <svg class="svg-icon" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-                    ${(c.note || "").includes(todayStamp() + "訪問") ? '訪問済' : '訪問'}
-                </button>
+                <button onclick="visitShop('${c.id}', this)" class="action-btn${(c.note || "").includes(todayStamp() + "訪問") ? ' visit-done' : ''}">${(c.note || "").includes(todayStamp() + "訪問") ? '訪問済' : '訪問'}</button>
                 <button onclick="panToMap('${c.id}', ${c.lat},${c.lng})" class="action-btn">
                     <svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
                     地図
