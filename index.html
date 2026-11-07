@@ -449,6 +449,9 @@
         .cov-tab.on { background: var(--navy); border-color: var(--navy); color: #fff; }
     
         .search-btn-style { height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+    
+        .cov-right { display: flex; align-items: center; gap: 6px; }
+        .cov-go { color: #9db8cc; font-size: 1.15rem; font-weight: 700; line-height: 1; }
     </style>
 </head>
 <body>
@@ -1158,8 +1161,8 @@
         document.getElementById('covTabArea').classList.toggle('on', isArea);
         document.getElementById('covTabStation').classList.toggle('on', !isArea);
         const q = normalize(document.getElementById('searchInput').value);
-        const filtered = db.filter(d => matchCustomer(d, q));
-        const targets = activeReps.size ? filtered.filter(d => activeReps.has(d.rep_name)) : filtered;
+        const base = targetReps.size ? db.filter(d => targetReps.has(d.rep_name)) : db;
+        const targets = base.filter(d => matchCustomer(d, q));
         const dateRe = /(19|20)\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])/;
         const groups = {};
         let visitedAll = 0, noneTotal = 0, noneVisited = 0;
@@ -1176,11 +1179,11 @@
         });
         const rows = Object.values(groups).map(v => ({ label: v.label, total: v.total, visited: v.visited, unvisited: v.total - v.visited, pct: v.total ? Math.round(v.visited / v.total * 100) : 0 }));
         rows.sort((a, b) => (b.unvisited - a.unvisited) || (b.total - a.total));
-        document.getElementById('coverage-summary').innerHTML = `全体：訪問済み <b>${visitedAll.toLocaleString()}</b> / ${targets.length.toLocaleString()}件`;
+        document.getElementById('coverage-summary').innerHTML = `${targetReps.size ? '自分の担当' : '全担当（自分のピン未設定）'}：訪問済み <b>${visitedAll.toLocaleString()}</b> / ${targets.length.toLocaleString()}件`;
         const list = document.getElementById('coverage-list'); list.innerHTML = "";
         const addRow = (r, clickable) => {
             const div = document.createElement('div'); div.className = 'cov-row';
-            div.innerHTML = `<div class="cov-head"><span class="cov-name">${r.label}</span><span class="cov-num">${r.visited}/${r.total}（${r.pct}%）</span></div><div class="cov-bar"><div class="cov-fill" style="width:${r.pct}%"></div></div>`;
+            div.innerHTML = `<div class="cov-head"><span class="cov-name">${r.label}</span><span class="cov-right"><span class="cov-num">${r.visited}/${r.total}（${r.pct}%）</span>${clickable ? '<span class="cov-go">›</span>' : ''}</span></div><div class="cov-bar"><div class="cov-fill" style="width:${r.pct}%"></div></div>`;
             if(clickable) div.onclick = () => { document.getElementById('searchInput').value = r.label; closeCoverage(); doSearch(); };
             list.appendChild(div);
         };
