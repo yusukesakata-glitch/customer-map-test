@@ -647,8 +647,7 @@
 
     window.gm_authFailure = function() {
         alert("APIキーエラーです。\n設定を確認してください。");
-        document.getElementById('map-placeholder-msg').innerHTML = "⚠️ API Key Error";
-        localStorage.removeItem('map_apiKey');
+        document.getElementById('map-placeholder-msg').innerHTML = "⚠️ APIキーでエラーが出ています。設定でキーを確認してください";
     };
 
     function normalize(s) { return (s||"").replace(/[Ａ-Ｚａ-ｚ０-９]/g, c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0)).toLowerCase().replace(/\s+/g,""); }
