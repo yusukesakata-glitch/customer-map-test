@@ -1387,7 +1387,7 @@
         const a = document.createElement('a');
         a.href = url; a.download = `notes-${_ymd}.txt`; a.click();
     }
-    function uploadData(i) { const f=i.files[0]; if(!f)return; const r=new FileReader(); r.onload=e=>{try{if(confirm("JSONファイルを読み込みますか？")){db=JSON.parse(e.target.result);saveDB();populateFilters();resetAndRender();alert("読み込み完了");}}catch(z){alert("読み込み失敗");}}; r.readAsText(f); }
+    function uploadData(i) { const f=i.files[0]; if(!f)return; const r=new FileReader(); r.onload=e=>{ try { const incoming = JSON.parse(e.target.result); if(!Array.isArray(incoming)) { alert("読み込み失敗"); return; } if(confirm("JSONファイルを読み込みますか？")) { const noteByCode = {}; db.forEach(d => { if(d.r_code && (d.note || "").trim()) noteByCode[d.r_code] = d.note; }); let kept = 0; incoming.forEach(d => { if(d.r_code && !(d.note || "").trim() && noteByCode[d.r_code]) { d.note = noteByCode[d.r_code]; kept++; } }); db = incoming; saveDB(); populateFilters(); resetAndRender(); alert(`読み込み完了（メモ ${kept} 件を引き継ぎました）`); } } catch(z) { alert("読み込み失敗"); } }; r.readAsText(f); }
     function saveDB() { localStorage.setItem(DB_NAME, JSON.stringify(db)); }
     function clearAll() { if(confirm("全データを削除しますか？")) { localStorage.removeItem(DB_NAME); location.reload(); } }
 
