@@ -741,52 +741,63 @@
 
     async function saveKeyAndInit() { const k=document.getElementById('apiKey').value; if(!k)return alert("キーを入力してください"); localStorage.setItem('map_apiKey', k); await initSystem(k); alert("保存しました"); }
       
-    async function initSystem(key) {
-        if(window.google && window.google.maps && map) return;
-        if(!window.google || !window.google.maps) {
-            await new Promise((resolve, reject) => {
-                if(document.querySelector('script[src*="maps.googleapis.com"]')) {
-                    setTimeout(resolve, 1000); return;
+    let _initPromise = null;
+    async function initSystem(key, force) {
+        if(map) return;
+        if(_initPromise && !force) return _initPromise;
+        _initPromise = (async () => {
+            const msgEl = document.getElementById('map-placeholder-msg');
+            const waitForApi = async (tries) => {
+                for(let i = 0; i < tries; i++) {
+                    if(window.google && window.google.maps && typeof google.maps.importLibrary === 'function') return true;
+                    await new Promise(r => setTimeout(r, 200));
                 }
-                const s = document.createElement('script');
-                s.src = `https://maps.googleapis.com/maps/api/js?key=${key}&loading=async&libraries=places,geocoding,geometry,marker`;
-                s.async = true;
-                s.onload = resolve;
-                s.onerror = (e) => {
-                    document.getElementById('map-placeholder-msg').innerText = "スクリプト読込エラー";
-                    reject(e);
-                };
-                document.head.appendChild(s);
-            });
-        }
-
-        try {
-            const { Map } = await google.maps.importLibrary("maps"); 
-            const { Geocoder } = await google.maps.importLibrary("geocoding");
-            const { AdvancedMarkerElement: AM } = await google.maps.importLibrary("marker");
-            geocoder = new Geocoder(); AdvancedMarkerElement = AM;
-            
-            const div = document.getElementById('google-map-view');
-            map = new Map(div, { center:{lat:35.68, lng:139.76}, zoom:13, mapId: "DEMO_MAP_ID", mapTypeControl: false, streetViewControl: false }); 
-            infoWindow = new google.maps.InfoWindow(); 
-            
-            map.addListener('idle', () => { const wasPin = isPinClick; isPinClick = false; if(!mapSyncMode || wasPin || Date.now() < (window._syncSuppressUntil || 0)) return; clearTimeout(window._idleTimer); window._idleTimer = setTimeout(() => { if(mapSyncMode) resetAndRender(); }, 250); });
-            map.addListener('dragstart', () => { if(watchId) { isTrackingLocked=false; nearbySort=null; updateGpsBtnState(); } });
-            
-            map.addListener('click', () => {
-                if (highlightedId) {
-                    highlightedId = null; 
-                    render(); 
+                return false;
+            };
+            try {
+                msgEl.style.display = '';
+                msgEl.innerText = "地図を読み込み中…";
+                let ok = await waitForApi(40);
+                for(let attempt = 0; !ok && attempt < 2; attempt++) {
+                    const old = document.querySelector('script[src*="maps.googleapis.com"]');
+                    if(old) old.remove();
+                    await new Promise((resolve) => {
+                        const s = document.createElement('script');
+                        s.src = `https://maps.googleapis.com/maps/api/js?key=${key}&loading=async&libraries=places,geocoding,geometry,marker`;
+                        s.async = true;
+                        s.onload = () => resolve();
+                        s.onerror = () => resolve();
+                        document.head.appendChild(s);
+                    });
+                    ok = await waitForApi(50);
                 }
-                if(infoWindow) infoWindow.close();
-            });
-            
-            document.getElementById('map-placeholder-msg').style.display='none';
-            if(db.length > 0) render(); 
-        } catch(e) { 
-            document.getElementById('map-placeholder-msg').innerText = "初期化失敗 (リロード推奨)";
-        }
+                if(!ok) throw new Error('maps api load failed');
+                const { Map } = await google.maps.importLibrary("maps");
+                const { Geocoder } = await google.maps.importLibrary("geocoding");
+                const { AdvancedMarkerElement: AM } = await google.maps.importLibrary("marker");
+                geocoder = new Geocoder(); AdvancedMarkerElement = AM;
+                const div = document.getElementById('google-map-view');
+                map = new Map(div, { center:{lat:35.68, lng:139.76}, zoom:13, mapId: "DEMO_MAP_ID", mapTypeControl: false, streetViewControl: false });
+                infoWindow = new google.maps.InfoWindow();
+                map.addListener('idle', () => { const wasPin = isPinClick; isPinClick = false; if(!mapSyncMode || wasPin || Date.now() < (window._syncSuppressUntil || 0)) return; clearTimeout(window._idleTimer); window._idleTimer = setTimeout(() => { if(mapSyncMode) resetAndRender(); }, 250); });
+                map.addListener('dragstart', () => { if(watchId) { isTrackingLocked=false; nearbySort=null; updateGpsBtnState(); } });
+                map.addListener('click', () => {
+                    if (highlightedId) { highlightedId = null; render(); }
+                    if(infoWindow) infoWindow.close();
+                });
+                msgEl.style.display = 'none';
+                if(db.length > 0) render();
+            } catch(e) {
+                _initPromise = null;
+                msgEl.style.display = '';
+                msgEl.innerText = "地図を読み込めませんでした（タップで再試行）";
+            }
+        })();
+        return _initPromise;
     }
+
+    document.getElementById('map-placeholder-msg').addEventListener('click', () => { if(map) return; const k = localStorage.getItem('map_apiKey'); if(k) initSystem(k, true); else openSettings(); });
+    window.addEventListener('online', () => { if(!map) { const k = localStorage.getItem('map_apiKey'); if(k) initSystem(k, true); } });
 
     function updateGpsBtnState() {
         const btn = document.getElementById('gpsBtn');
