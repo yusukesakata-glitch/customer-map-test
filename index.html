@@ -355,7 +355,7 @@
     
         /* === コンパクト化（地図を広く）＋ 装飾の統一 === */
         .search-row { top: 8px; }
-        .right-section { padding-top: 54px; }
+        .right-section { padding-top: 10px; }
         .panel { padding-bottom: 10px; border-radius: 16px; }
         .header-area { padding: 10px 12px 0; }
         .header-area h1 { font-size: 1.02rem; }
@@ -388,14 +388,6 @@
 
 <div class="app-container">
     <div class="left-section">
-        <div class="search-row">
-            <div class="place-search-box search-box-style">
-                <input type="text" id="mapJumpInput" class="place-search-input search-input-style" placeholder="" onkeydown="if(event.key==='Enter')searchMapLocation()">
-                <button class="place-search-btn search-btn-style" onclick="searchMapLocation()">
-                    <svg class="svg-icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-                </button>
-            </div>
-        </div>
 
         <div class="map-wrapper">
             <div id="google-map-view"></div>
@@ -423,8 +415,8 @@
         </div>
         
         <div class="list-search-box search-box-style">
-            <input type="text" id="searchInput" class="search-input-style" placeholder="" oninput="resetAndRender()">
-            <button class="search-go-btn" onclick="resetAndRender()">検索</button>
+            <input type="text" id="searchInput" class="search-input-style" placeholder="" oninput="resetAndRender()" onkeydown="if(event.key==='Enter')doSearch()">
+            <button class="search-go-btn" onclick="doSearch()">検索</button>
         </div>
 
         <div class="counts-row"><div class="c"><span class="n" id="cntAll">-</span><span class="l">該当</span></div><div class="c mine"><span class="n" id="cntMine">-</span><span class="l">自分の顧客</span></div><div class="c others"><span class="n" id="cntOthers">-</span><span class="l">他担当の顧客</span></div></div>
@@ -778,8 +770,28 @@
         updateGpsBtnState();
     }
 
+    function doSearch() {
+        resetAndRender();
+        const raw = document.getElementById('searchInput').value.trim();
+        document.getElementById('searchInput').blur();
+        if(!raw || !map) return;
+        const q = normalize(raw);
+        const hits = db.filter(d => d.lat && d.lng && normalize(d.name + d.r_code + d.rep_name + d.address + (d.building||"") + (d.station||"")).includes(q));
+        if(hits.length === 1) {
+            map.setCenter({ lat: hits[0].lat, lng: hits[0].lng }); map.setZoom(15);
+        } else if(hits.length > 1) {
+            const b = new google.maps.LatLngBounds();
+            hits.slice(0, 200).forEach(d => b.extend({ lat: d.lat, lng: d.lng }));
+            map.fitBounds(b, 60);
+        } else if(geocoder) {
+            geocoder.geocode({ address: raw }, (results, status) => {
+                if (status === 'OK') { map.setCenter(results[0].geometry.location); map.setZoom(14); if(mapSyncMode) resetAndRender(); }
+            });
+        }
+    }
+
     function searchMapLocation() {
-        const input = document.getElementById('mapJumpInput').value;
+        const input = document.getElementById('searchInput').value;
         if(!input || !geocoder) return;
         geocoder.geocode({ address: input }, (results, status) => {
             if (status === 'OK') { map.setCenter(results[0].geometry.location); map.setZoom(14); if(mapSyncMode) resetAndRender(); }
@@ -926,7 +938,7 @@
             const group = grouped[key];
             const first = group[0];
             let isMe = group.some(c => targetReps.includes(c.rep_name));
-            let isHit = group.some(c => hasSearch && normalize(c.name + c.r_code).includes(searchInput));
+            let isHit = group.some(c => hasSearch && normalize(c.name + c.r_code + c.address).includes(searchInput));
             
             let isHighlighted = group.some(c => c.id === highlightedId);
             
@@ -1027,7 +1039,7 @@
             if(fPref !== "ALL" && getPrefecture(d.address) !== fPref) return false;
             if(fSt !== "ALL" && (d.station||"") !== fSt) return false; 
             if(!q) return true;
-            return normalize(d.name + d.r_code + d.rep_name + d.address + (d.building||"")).includes(q);
+            return normalize(d.name + d.r_code + d.rep_name + d.address + (d.building||"") + (d.station||"")).includes(q);
         });
 
         if(mapSyncMode && map) {
