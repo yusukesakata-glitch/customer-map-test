@@ -138,9 +138,9 @@
         }
         .list-search-box input:focus { border-color: var(--gold) !important; outline: none; }
 
-        .counts-row { display: flex; gap: 14px; align-items: center; padding: 12px 14px 0; }
+        .counts-row { display: flex; gap: 12px; align-items: center; padding: 12px 10px 0; }
         .counts-row .c { display: flex; align-items: baseline; white-space: nowrap; }
-        .counts-row .n { font-size: 21px; font-weight: 800; line-height: 1; color: var(--navy-dark); font-variant-numeric: tabular-nums; }
+        .counts-row .n { font-size: 19px; font-weight: 800; line-height: 1; color: var(--navy-dark); font-variant-numeric: tabular-nums; }
         .counts-row .l { font-size: 10.5px; color: var(--text-sub); font-weight: 600; margin-left: 5px; }
         .counts-row .mine .n { color: var(--gold-dark); }
         .counts-row .others .n { color: var(--navy); }
@@ -447,6 +447,8 @@
         .cov-tabs { display: flex; gap: 8px; margin: 4px 0 10px; }
         .cov-tab { flex: 1; padding: 7px 0; border-radius: 999px; border: 1.5px solid #d7e3ee; background: #fff; color: #536b7d; font-weight: 700; font-size: 0.8rem; cursor: pointer; }
         .cov-tab.on { background: var(--navy); border-color: var(--navy); color: #fff; }
+    
+        .search-btn-style { height: 44px; display: inline-flex; align-items: center; justify-content: center; }
     </style>
 </head>
 <body>
@@ -503,6 +505,10 @@
     <div class="modal-content">
         <h3 id="settings-title">設定</h3>
         
+        <div class="settings-section sec-settings">
+            <button class="btn-navy" style="width:100%;" onclick="closeSettingsModal(); openCoverage()">訪問カバー率を見る</button>
+        </div>
+
         <div class="settings-section sec-settings">
             <label>Google Maps APIキー</label>
             <div style="display:flex; gap:10px;">
