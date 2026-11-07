@@ -1274,6 +1274,30 @@
             if(area.scrollLeft + area.clientWidth > area.scrollWidth - 500 && window._appendCards) window._appendCards();
         }, { passive: true });
     })();
+
+    // カードを送って止まったら、その店にハイライトを移す（地図は動かさない・再描画しない）
+    (function(){
+        const area = document.getElementById('result-area');
+        if(!area) return;
+        let timer = null;
+        area.addEventListener('scroll', () => {
+            clearTimeout(timer);
+            timer = setTimeout(() => {
+                const cards = area.querySelectorAll('.customer-item');
+                if(!cards.length) return;
+                const areaLeft = area.getBoundingClientRect().left;
+                let best = null, bestDx = Infinity;
+                cards.forEach(el => { const dx = Math.abs(el.getBoundingClientRect().left - areaLeft); if(dx < bestDx) { bestDx = dx; best = el; } });
+                if(!best || !best.dataset.id || String(best.dataset.id) === String(highlightedId)) return;
+                const c = db.find(d => String(d.id) === String(best.dataset.id));
+                if(!c) return;
+                highlightedId = c.id;
+                document.querySelectorAll('.customer-item.highlighted').forEach(el => el.classList.remove('highlighted'));
+                best.classList.add('highlighted');
+                if(window._lastDisplay) updateMapPins(window._lastDisplay);
+            }, 220);
+        }, { passive: true });
+    })();
 </script>
 </body>
 </html>
