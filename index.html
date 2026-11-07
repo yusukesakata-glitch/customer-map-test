@@ -1001,14 +1001,6 @@
                 });
                 html += '</div>';
                 infoWindow.setContent(html); infoWindow.open(map, m);
-                const firstC = group[0];
-                if(firstC) {
-                    highlightedId = firstC.id;
-                    document.querySelectorAll('.customer-item.highlighted').forEach(el => el.classList.remove('highlighted'));
-                    let cardEl = document.querySelector('.customer-item[data-id="' + firstC.id + '"]');
-                    for(let i = 0; i < 30 && !cardEl && window._appendCards; i++) { const before = document.querySelectorAll('.customer-item').length; window._appendCards(); if(document.querySelectorAll('.customer-item').length === before) break; cardEl = document.querySelector('.customer-item[data-id="' + firstC.id + '"]'); }
-                    if(cardEl) { cardEl.classList.add('highlighted'); setTimeout(() => cardEl.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' }), 60); }
-                }
             });
             markers.push(m); bounds.extend(m.position); hasPin = true;
         });
@@ -1184,7 +1176,6 @@
             render();
         }
 
-        if(window.innerWidth < 900) document.querySelector('.left-section').scrollIntoView({behavior:'smooth', block:'start'}); 
     }
     
     function loadMore() { currentLimit += parseInt(document.getElementById('limitSelect').value) || 100; render(); }
@@ -1271,29 +1262,10 @@
     function saveDB() { localStorage.setItem(DB_NAME, JSON.stringify(db)); }
     function clearAll() { if(confirm("全データを削除しますか？")) { localStorage.removeItem(DB_NAME); location.reload(); } }
 
-    // カードをスワイプしたら、その顧客のピンへ地図を寄せてハイライト
+    // カルーセルの終端が近づいたら次のカードを自動で足す
     (function(){
         const area = document.getElementById('result-area');
         if(!area) return;
-        let timer = null, lastId = null;
-        area.addEventListener('scroll', () => {
-            clearTimeout(timer);
-            timer = setTimeout(() => {
-                if(!map || mapSyncMode || area.scrollLeft < 4) return;
-                const cards = area.querySelectorAll('.customer-item');
-                if(!cards.length) return;
-                const areaLeft = area.getBoundingClientRect().left;
-                let best = null, bestDx = Infinity;
-                cards.forEach(el => { const dx = Math.abs(el.getBoundingClientRect().left - areaLeft); if(dx < bestDx) { bestDx = dx; best = el; } });
-                if(!best || !best.dataset.id || best.dataset.id === lastId) return;
-                lastId = best.dataset.id;
-                const c = db.find(d => String(d.id) === String(best.dataset.id));
-                if(!c || !c.lat || !c.lng) return;
-                highlightedId = c.id;
-                map.panTo({ lat: c.lat, lng: c.lng });
-                if(window._lastDisplay) updateMapPins(window._lastDisplay);
-            }, 320);
-        }, { passive: true });
         area.addEventListener('scroll', () => {
             if(area.scrollLeft + area.clientWidth > area.scrollWidth - 500 && window._appendCards) window._appendCards();
         }, { passive: true });
