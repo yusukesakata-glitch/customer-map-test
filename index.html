@@ -586,8 +586,8 @@
     <div class="modal-content">
         <h3>訪問カバー率</h3>
         <div id="coverage-summary" style="font-size:0.85rem; margin-bottom:6px;"></div>
-        <div class="cov-tabs"><button id="covTabArea" class="cov-tab on" onclick="openCoverage('area')">エリア（住所）</button><button id="covTabStation" class="cov-tab" onclick="openCoverage('station')">駅</button></div>
-        <div style="font-size:0.7rem; color:#999; margin-bottom:10px;">訪問済み＝日付入りのメモがある店／行をタップするとその条件で検索します（未訪問が多い順・50件まで）</div>
+        <div class="cov-tabs"><button id="covSortCount" class="cov-tab on" onclick="setCoverageSort('count')">件数</button><button id="covSortPct" class="cov-tab" onclick="setCoverageSort('pct')">網羅率</button><button id="covSortDir" class="cov-tab" onclick="toggleCoverageDir()">↓ 降順</button></div>
+        <div style="font-size:0.7rem; color:#999; margin-bottom:10px;">訪問済み＝日付入りのメモがある店／行をタップするとその条件で検索します（50件まで）</div>
         <div id="coverage-list"></div>
         <button class="btn-sub" style="width:100%; margin-top:15px;" onclick="closeCoverage()">閉じる</button>
     </div>
