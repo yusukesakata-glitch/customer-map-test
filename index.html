@@ -586,7 +586,7 @@
     <div class="modal-content">
         <h3>訪問カバー率</h3>
         <div id="coverage-summary" style="font-size:0.85rem; margin-bottom:6px;"></div>
-        <div class="cov-tabs"><button id="covSortCount" class="cov-tab on" onclick="setCoverageSort('count')">件数</button><button id="covSortPct" class="cov-tab" onclick="setCoverageSort('pct')">網羅率</button><button id="covSortDir" class="cov-tab" onclick="toggleCoverageDir()">↓ 降順</button></div>
+        <div class="cov-tabs"><button id="covSortGeo" class="cov-tab on" onclick="setCoverageSort('geo')">近い順</button><button id="covSortCount" class="cov-tab" onclick="setCoverageSort('count')">件数</button><button id="covSortPct" class="cov-tab" onclick="setCoverageSort('pct')">網羅率</button><button id="covSortDir" class="cov-tab" onclick="toggleCoverageDir()">↓ 降順</button></div>
         <div style="font-size:0.7rem; color:#999; margin-bottom:10px;">訪問済み＝日付入りのメモがある店／行をタップするとその条件で検索します（50件まで）</div>
         <div id="coverage-list"></div>
         <button class="btn-sub" style="width:100%; margin-top:15px;" onclick="closeCoverage()">閉じる</button>
@@ -1155,8 +1155,9 @@
     function setCoverageSort(key) { window._covSort = key; openCoverage(); }
     function toggleCoverageDir() { window._covDir = (window._covDir === 'asc') ? 'desc' : 'asc'; openCoverage(); }
     function openCoverage() {
-        const sortKey = window._covSort || 'count';
+        const sortKey = window._covSort || 'geo';
         const sortDir = window._covDir || 'desc';
+        document.getElementById('covSortGeo').classList.toggle('on', sortKey === 'geo');
         document.getElementById('covSortCount').classList.toggle('on', sortKey === 'count');
         document.getElementById('covSortPct').classList.toggle('on', sortKey === 'pct');
         document.getElementById('covSortDir').textContent = sortDir === 'desc' ? '↓ 降順' : '↑ 昇順';
@@ -1171,14 +1172,41 @@
             if(visited) visitedAll++;
             const label = areaOf(d.address);
             if(!label) { noneTotal++; if(visited) noneVisited++; return; }
-            if(!groups[label]) groups[label] = { label, total: 0, visited: 0 };
-            groups[label].total++;
-            if(visited) groups[label].visited++;
+            if(!groups[label]) groups[label] = { label, total: 0, visited: 0, latSum: 0, lngSum: 0, geoN: 0, pref: "" };
+            const g = groups[label];
+            g.total++;
+            if(visited) g.visited++;
+            if(typeof d.lat === 'number' && typeof d.lng === 'number' && d.lat && d.lng) { g.latSum += d.lat; g.lngSum += d.lng; g.geoN++; }
+            if(!g.pref) { const pm = String(d.address || "").match(/^.+?[都道府県]/); if(pm) g.pref = pm[0]; }
         });
-        const rows = Object.values(groups).map(v => ({ label: v.label, total: v.total, visited: v.visited, pct: v.total ? Math.round(v.visited / v.total * 100) : 0 }));
-        const key = sortKey === 'pct' ? 'pct' : 'total';
-        const dirMul = sortDir === 'asc' ? 1 : -1;
-        rows.sort((a, b) => dirMul * (a[key] - b[key]) || (b.total - a.total));
+        const rows = Object.values(groups).map(v => ({ label: v.label, total: v.total, visited: v.visited, pct: v.total ? Math.round(v.visited / v.total * 100) : 0, lat: v.geoN ? v.latSum / v.geoN : null, lng: v.geoN ? v.lngSum / v.geoN : null, pref: v.pref }));
+        if(sortKey === 'geo') {
+            const withC = rows.filter(r => r.lat !== null);
+            const noC = rows.filter(r => r.lat === null).sort((a, b) => b.total - a.total);
+            withC.sort((a, b) => b.total - a.total);
+            const chain = [];
+            if(withC.length) {
+                chain.push(withC.shift());
+                while(withC.length) {
+                    const last = chain[chain.length - 1];
+                    let bi = 0, bd = Infinity;
+                    withC.forEach((c, i) => {
+                        const dx = (c.lng - last.lng) * Math.cos(last.lat * Math.PI / 180), dy = c.lat - last.lat;
+                        let dd = dx * dx + dy * dy;
+                        if(c.pref && c.pref === last.pref) dd *= 0.36;
+                        if(dd < bd) { bd = dd; bi = i; }
+                    });
+                    chain.push(withC.splice(bi, 1)[0]);
+                }
+            }
+            let ordered = chain.concat(noC);
+            if(sortDir === 'asc') ordered.reverse();
+            rows.length = 0; rows.push(...ordered);
+        } else {
+            const key = sortKey === 'pct' ? 'pct' : 'total';
+            const dirMul = sortDir === 'asc' ? 1 : -1;
+            rows.sort((a, b) => dirMul * (a[key] - b[key]) || (b.total - a.total));
+        }
         document.getElementById('coverage-summary').innerHTML = `${targetReps.length ? '自分の担当' : '全担当（自分のピン未設定）'}：訪問済み <b>${visitedAll.toLocaleString()}</b> / ${targets.length.toLocaleString()}件`;
         const list = document.getElementById('coverage-list'); list.innerHTML = "";
         const addRow = (r, clickable) => {
