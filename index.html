@@ -925,10 +925,11 @@
         return { r: "", rep: "", company: "", shop: "", addr: "", build: "", tel: "", credit: "", station: "", note: "" };
     }
     async function upsertRows(objs) {
-        let count = 0, updateCount = 0, failCount = 0, skipCount = 0; const failCodes = []; let noCoordCount = 0; const noCoordCodes = [];
+        let count = 0, updateCount = 0, failCount = 0, skipCount = 0; const failCodes = []; let noCoordCount = 0; const noCoordCodes = []; let removedCount = 0;
         for(const o of objs) {
             if(!o.r) continue;
             const existing = db.find(d => d.r_code === o.r);
+            if(o.credit === '現存せず') { if(existing) { db.splice(db.indexOf(existing), 1); removedCount++; } continue; }
             if(existing) {
                 if(o.company || o.shop) { existing.company = o.company || existing.company || ""; existing.shop = o.shop || existing.shop || ""; existing.name = (existing.company + " " + existing.shop).trim(); }
                 if(o.build) existing.building = o.build;
@@ -950,7 +951,7 @@
                 await new Promise(r => setTimeout(r, 400));
             }
         }
-        return { count, updateCount, failCount, failCodes, skipCount, noCoordCount, noCoordCodes };
+        return { count, updateCount, failCount, failCodes, skipCount, noCoordCount, noCoordCodes, removedCount };
     }
     async function onCsvFileSelected(input) {
         const f = input.files[0]; input.value = "";
@@ -979,7 +980,7 @@
             window._importFileText = null;
             const fnEl = document.getElementById('csv-file-name'); if(fnEl) fnEl.innerText = "";
             saveDB(); populateFilters(); resetAndRender();
-            alert(`完了: 新規 ${res.count} 件 / 更新 ${res.updateCount} 件` + (res.noCoordCount ? `\n座標が取れず「座標なし」で追加した新規: ${res.noCoordCount} 件（${res.noCoordCodes.join("、")}${res.noCoordCount > res.noCoordCodes.length ? " ほか" : ""}）` : "") + (res.skipCount ? `\n住所が無く追加できなかった新規: ${res.skipCount} 件` : ""));
+            alert(`完了: 新規 ${res.count} 件 / 更新 ${res.updateCount} 件` + (res.noCoordCount ? `\n座標が取れず「座標なし」で追加した新規: ${res.noCoordCount} 件（${res.noCoordCodes.join("、")}${res.noCoordCount > res.noCoordCodes.length ? " ほか" : ""}）` : "") + (res.skipCount ? `\n住所が無く追加できなかった新規: ${res.skipCount} 件` : "") + (res.removedCount ? `\n現存せずのため除外: ${res.removedCount} 件` : ""));
         } finally { btn.disabled = false; btn.innerText = "取り込み実行"; }
     }
 
@@ -1439,7 +1440,7 @@
         const a = document.createElement('a');
         a.href = url; a.download = `notes-${_ymd}.txt`; a.click();
     }
-    function uploadData(i) { const f=i.files[0]; i.value=""; if(!f)return; const _fd = f.lastModified ? new Date(f.lastModified) : null; const _fds = _fd ? `${_fd.getFullYear()}-${String(_fd.getMonth()+1).padStart(2,'0')}-${String(_fd.getDate()).padStart(2,'0')}` : ""; const r=new FileReader(); r.onload=e=>{ try { const incoming = JSON.parse(e.target.result); if(!Array.isArray(incoming)) { alert("読み込み失敗"); return; } if(confirm(`JSONファイルを読み込みますか？\nデータ ${incoming.length.toLocaleString()} 件${_fds ? `／ファイル日付 ${_fds}` : ""}`)) { localStorage.setItem('map_data_info', JSON.stringify({ count: incoming.length, fileDate: _fds })); const noteByCode = {}; db.forEach(d => { if(d.r_code && (d.note || "").trim()) noteByCode[d.r_code] = d.note; }); let kept = 0; incoming.forEach(d => { if(d.r_code && !(d.note || "").trim() && noteByCode[d.r_code]) { d.note = noteByCode[d.r_code]; kept++; } }); db = incoming; saveDB(); populateFilters(); resetAndRender(); updateStorageInfo(); alert(`読み込み完了（メモ ${kept} 件を引き継ぎました）`); } } catch(z) { alert("読み込み失敗"); } }; r.readAsText(f); }
+    function uploadData(i) { const f=i.files[0]; i.value=""; if(!f)return; const _fd = f.lastModified ? new Date(f.lastModified) : null; const _fds = _fd ? `${_fd.getFullYear()}-${String(_fd.getMonth()+1).padStart(2,'0')}-${String(_fd.getDate()).padStart(2,'0')}` : ""; const r=new FileReader(); r.onload=e=>{ try { const incoming = JSON.parse(e.target.result); if(!Array.isArray(incoming)) { alert("読み込み失敗"); return; } if(confirm(`JSONファイルを読み込みますか？\nデータ ${incoming.length.toLocaleString()} 件${_fds ? `／ファイル日付 ${_fds}` : ""}`)) { localStorage.setItem('map_data_info', JSON.stringify({ count: incoming.filter(d => d.credit !== '現存せず').length, fileDate: _fds })); const noteByCode = {}; db.forEach(d => { if(d.r_code && (d.note || "").trim()) noteByCode[d.r_code] = d.note; }); let kept = 0; incoming.forEach(d => { if(d.r_code && !(d.note || "").trim() && noteByCode[d.r_code]) { d.note = noteByCode[d.r_code]; kept++; } }); const droppedGone = incoming.filter(d => d.credit === '現存せず').length; db = incoming.filter(d => d.credit !== '現存せず'); saveDB(); populateFilters(); resetAndRender(); updateStorageInfo(); alert(`読み込み完了（メモ ${kept} 件を引き継ぎました${droppedGone ? `／現存せず ${droppedGone} 件を除外` : ""}）`); } } catch(z) { alert("読み込み失敗"); } }; r.readAsText(f); }
     function saveDB() { localStorage.setItem(DB_NAME, JSON.stringify(db)); }
 
     // カルーセルの終端が近づいたら次のカードを自動で足す
