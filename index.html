@@ -1152,11 +1152,14 @@
         const town = tm[0].replace(/丁目$/, "");
         return town ? (wm[1] + " " + town) : "";
     }
-    function openCoverage(axis) {
-        window._covAxis = axis || window._covAxis || 'area';
-        const isArea = window._covAxis === 'area';
-        document.getElementById('covTabArea').classList.toggle('on', isArea);
-        document.getElementById('covTabStation').classList.toggle('on', !isArea);
+    function setCoverageSort(key) { window._covSort = key; openCoverage(); }
+    function toggleCoverageDir() { window._covDir = (window._covDir === 'asc') ? 'desc' : 'asc'; openCoverage(); }
+    function openCoverage() {
+        const sortKey = window._covSort || 'count';
+        const sortDir = window._covDir || 'desc';
+        document.getElementById('covSortCount').classList.toggle('on', sortKey === 'count');
+        document.getElementById('covSortPct').classList.toggle('on', sortKey === 'pct');
+        document.getElementById('covSortDir').textContent = sortDir === 'desc' ? '↓ 降順' : '↑ 昇順';
         const q = normalize(document.getElementById('searchInput').value);
         const base = targetReps.length ? db.filter(d => targetReps.includes(d.rep_name)) : db;
         const targets = base.filter(d => matchCustomer(d, q));
@@ -1166,16 +1169,16 @@
         targets.forEach(d => {
             const visited = dateRe.test(d.note || "");
             if(visited) visitedAll++;
-            let label = "", key = "";
-            if(isArea) { label = areaOf(d.address); key = label; }
-            else { const st = (d.station || "").trim(); if(st) { label = st; key = normalize(st).replace(/駅$/, ""); } }
+            const label = areaOf(d.address);
             if(!label) { noneTotal++; if(visited) noneVisited++; return; }
-            if(!groups[key]) groups[key] = { label, total: 0, visited: 0 };
-            groups[key].total++;
-            if(visited) groups[key].visited++;
+            if(!groups[label]) groups[label] = { label, total: 0, visited: 0 };
+            groups[label].total++;
+            if(visited) groups[label].visited++;
         });
-        const rows = Object.values(groups).map(v => ({ label: v.label, total: v.total, visited: v.visited, unvisited: v.total - v.visited, pct: v.total ? Math.round(v.visited / v.total * 100) : 0 }));
-        rows.sort((a, b) => (b.unvisited - a.unvisited) || (b.total - a.total));
+        const rows = Object.values(groups).map(v => ({ label: v.label, total: v.total, visited: v.visited, pct: v.total ? Math.round(v.visited / v.total * 100) : 0 }));
+        const key = sortKey === 'pct' ? 'pct' : 'total';
+        const dirMul = sortDir === 'asc' ? 1 : -1;
+        rows.sort((a, b) => dirMul * (a[key] - b[key]) || (b.total - a.total));
         document.getElementById('coverage-summary').innerHTML = `${targetReps.length ? '自分の担当' : '全担当（自分のピン未設定）'}：訪問済み <b>${visitedAll.toLocaleString()}</b> / ${targets.length.toLocaleString()}件`;
         const list = document.getElementById('coverage-list'); list.innerHTML = "";
         const addRow = (r, clickable) => {
@@ -1185,7 +1188,7 @@
             list.appendChild(div);
         };
         rows.slice(0, 50).forEach(r => addRow(r, true));
-        if(noneTotal) addRow({ label: isArea ? "（住所なし・不明）" : "（駅なし）", total: noneTotal, visited: noneVisited, pct: Math.round(noneVisited / noneTotal * 100) }, false);
+        if(noneTotal) addRow({ label: "（住所なし・不明）", total: noneTotal, visited: noneVisited, pct: Math.round(noneVisited / noneTotal * 100) }, false);
         if(!rows.length && !noneTotal) list.innerHTML = '<div style="font-size:0.85rem; color:#999;">対象の店がありません</div>';
         document.getElementById('coverageModal').style.display = 'flex';
     }
