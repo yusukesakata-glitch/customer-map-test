@@ -1265,7 +1265,7 @@
                 </a>` : ""}
                 <a href="https://www.google.com/maps/dir/?api=1&destination=${(c.lat && c.lng) ? (c.lat + ',' + c.lng) : encodeURIComponent(c.address + (c.building ? ' ' + c.building : ''))}" target="_blank" rel="noopener" class="action-btn">経路
                 </a>
-                <button onclick="visitShop('${c.id}', this)" class="action-btn visit-btn${(c.note || "").includes(todayStamp() + "訪問") ? ' visit-done' : ''}">${(c.note || "").includes(todayStamp() + "訪問") ? '訪問済' : '訪問した'}</button>
+                <button onclick="visitShop('${c.id}', this)" class="action-btn visit-btn${(c.note || "").includes(todayStamp() + "訪問") ? ' visit-done' : ''}">${(c.note || "").includes(todayStamp() + "訪問") ? '訪問済' : '行った'}</button>
                 <button onclick="panToMap('${c.id}', ${c.lat},${c.lng})" class="action-btn">地図
                 </button>
             </div>`;
