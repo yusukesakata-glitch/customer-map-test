@@ -602,6 +602,7 @@
     };
 
     function normalize(s) { return (s||"").replace(/[Ａ-Ｚａ-ｚ０-９]/g, c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0)).toLowerCase().replace(/\s+/g,""); }
+    function matchCustomer(c, q) { if(!q) return true; const t = normalize(c.name + c.r_code + c.rep_name + c.address + (c.building||"") + (c.station||"")); if(t.includes(q)) return true; if(q.length > 1 && q.endsWith("駅")) return normalize(c.station||"").includes(q.slice(0, -1)); return false; }
     function log(msg) { document.getElementById('log-area').innerText = msg; }
 
     window.onload = () => {
@@ -827,7 +828,7 @@
         document.getElementById('searchInput').blur();
         if(!raw || !map) return;
         const q = normalize(raw);
-        const hits = db.filter(d => d.lat && d.lng && normalize(d.name + d.r_code + d.rep_name + d.address + (d.building||"") + (d.station||"")).includes(q));
+        const hits = db.filter(d => d.lat && d.lng && matchCustomer(d, q));
         if(hits.length === 1) {
             releaseFollow(); map.setCenter({ lat: hits[0].lat, lng: hits[0].lng }); map.setZoom(15);
         } else if(hits.length > 1) {
@@ -968,7 +969,7 @@
                 if(fPref !== "ALL" && getPrefecture(d.address) !== fPref) return false;
                 if(fSt !== "ALL" && (d.station||"") !== fSt) return false;
                 if(activeReps.size > 0 && !activeReps.has(d.rep_name)) return false;
-                if(hasSearch && !normalize(d.name + d.r_code + d.rep_name + d.address + (d.building||"") + (d.station||"")).includes(searchInput)) return false;
+                if(hasSearch && !matchCustomer(d, searchInput)) return false;
                 return true;
             });
             const _b = map.getBounds();
@@ -995,7 +996,7 @@
             const first = group[0];
             pinItems.push({ key, group, first, lat: first.lat, lng: first.lng,
                 isMe: group.some(c => targetReps.includes(c.rep_name)),
-                isHit: group.some(c => hasSearch && normalize(c.name + c.r_code + c.address).includes(searchInput)),
+                isHit: group.some(c => hasSearch && matchCustomer(c, searchInput)),
                 isHighlighted: group.some(c => c.id === highlightedId) });
         });
 
@@ -1143,7 +1144,7 @@
             if(fPref !== "ALL" && getPrefecture(d.address) !== fPref) return false;
             if(fSt !== "ALL" && (d.station||"") !== fSt) return false; 
             if(!q) return true;
-            return normalize(d.name + d.r_code + d.rep_name + d.address + (d.building||"") + (d.station||"")).includes(q);
+            return matchCustomer(d, q);
         });
 
         if(mapSyncMode && map) {
