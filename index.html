@@ -1254,22 +1254,14 @@
                 ${c.note ? `<div class="note-box">${c.note}</div>` : ""}
             </div>
             <div class="action-area">
-                <button onclick="openEdit('${c.id}')" class="action-btn">
-                    <svg class="svg-icon" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
-                    編集
+                <button onclick="openEdit('${c.id}')" class="action-btn">編集
                 </button>
-                ${c.tel ? `<a href="tel:${c.tel}" class="action-btn">
-                    <svg class="svg-icon" viewBox="0 0 24 24"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 0 0-1.01.24l-2.2 2.2a15.053 15.053 0 0 1-6.59-6.59l2.2-2.21c.28-.26.36-.65.25-1.01A11.36 11.36 0 0 1 8.5 4c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1 0 9.39 7.61 17 17 17 .55 0 1-.45 1-1v-3.5c0-.55-.45-1-1-1z"/></svg>
-                    発信
+                ${c.tel ? `<a href="tel:${c.tel}" class="action-btn">発信
                 </a>` : ""}
-                <a href="https://www.google.com/maps/dir/?api=1&destination=${(c.lat && c.lng) ? (c.lat + ',' + c.lng) : encodeURIComponent(c.address + (c.building ? ' ' + c.building : ''))}" target="_blank" rel="noopener" class="action-btn">
-                    <svg class="svg-icon" viewBox="0 0 24 24"><path d="M21.71 11.29l-9-9c-.39-.39-1.02-.39-1.41 0l-9 9c-.39.39-.39 1.02 0 1.41l9 9c.39.39 1.02.39 1.41 0l9-9c.39-.39.39-1.02 0-1.41zM14 14.5V12h-4v3H8v-4c0-.55.45-1 1-1h5V7.5l3.5 3.5-3.5 3.5z"/></svg>
-                    経路
+                <a href="https://www.google.com/maps/dir/?api=1&destination=${(c.lat && c.lng) ? (c.lat + ',' + c.lng) : encodeURIComponent(c.address + (c.building ? ' ' + c.building : ''))}" target="_blank" rel="noopener" class="action-btn">経路
                 </a>
                 <button onclick="visitShop('${c.id}', this)" class="action-btn${(c.note || "").includes(todayStamp() + "訪問") ? ' visit-done' : ''}">${(c.note || "").includes(todayStamp() + "訪問") ? '訪問済' : '訪問'}</button>
-                <button onclick="panToMap('${c.id}', ${c.lat},${c.lng})" class="action-btn">
-                    <svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
-                    地図
+                <button onclick="panToMap('${c.id}', ${c.lat},${c.lng})" class="action-btn">地図
                 </button>
             </div>`;
             area.appendChild(div);
