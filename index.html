@@ -823,10 +823,10 @@
                 const div = document.getElementById('google-map-view');
                 map = new Map(div, { center:{lat:35.68, lng:139.76}, zoom:13, mapId: "DEMO_MAP_ID", mapTypeControl: false, streetViewControl: false, gestureHandling: "greedy" });
                 infoWindow = new google.maps.InfoWindow();
-                map.addListener('idle', () => { const wasPin = isPinClick; isPinClick = false; if(!mapSyncMode || wasPin) return; const wait = (window._syncSuppressUntil || 0) - Date.now(); clearTimeout(window._idleTimer); window._idleTimer = setTimeout(() => { if(mapSyncMode) resetAndRender(); }, wait > 0 ? wait + 250 : 250); });
+                map.addListener('idle', () => { const wasPin = isPinClick; isPinClick = false; if(!mapSyncMode || wasPin) return; updateMapPins(window._lastDisplay || []); });
                 map.addListener('dragstart', () => { if(watchId) { isTrackingLocked=false; nearbySort=null; updateGpsBtnState(); } });
                 map.addListener('click', () => {
-                    if (highlightedId) { highlightedId = null; render(); }
+                    if (highlightedId) { highlightedId = null; document.querySelectorAll('.customer-item.highlighted').forEach(el => el.classList.remove('highlighted')); updateMapPins(window._lastDisplay || []); }
                     if(infoWindow) infoWindow.close();
                 });
                 msgEl.style.display = 'none';
