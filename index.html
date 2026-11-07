@@ -1176,7 +1176,7 @@
             g.total++;
             if(visited) g.visited++;
             if(typeof d.lat === 'number' && typeof d.lng === 'number' && d.lat && d.lng) { g.latSum += d.lat; g.lngSum += d.lng; g.geoN++; }
-            if(!g.pref) { const pm = String(d.address || "").match(/^.+?[都道府県]/); if(pm) g.pref = pm[0]; }
+            if(!g.pref) { const pm = String(d.address || "").match(/(北海道|東京都|京都府|大阪府|[^\s　]{2,3}県)/); g.pref = pm ? pm[1] : label.split(" ")[0]; }
         });
         const rows = Object.values(groups).map(v => ({ label: v.label, total: v.total, visited: v.visited, pct: v.total ? Math.round(v.visited / v.total * 100) : 0, lat: v.geoN ? v.latSum / v.geoN : null, lng: v.geoN ? v.lngSum / v.geoN : null, pref: v.pref }));
         const key = sortKey === 'pct' ? 'pct' : 'total';
