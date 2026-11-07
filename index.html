@@ -1181,11 +1181,11 @@
         const rows = Object.values(groups).map(v => ({ label: v.label, total: v.total, visited: v.visited, pct: v.total ? Math.round(v.visited / v.total * 100) : 0, lat: v.geoN ? v.latSum / v.geoN : null, lng: v.geoN ? v.lngSum / v.geoN : null, pref: v.pref }));
         const key = sortKey === 'pct' ? 'pct' : 'total';
         const dirMul = sortDir === 'asc' ? 1 : -1;
-        rows.sort((a, b) => dirMul * (a[key] - b[key]) || (b.total - a.total));
+        const byKey = (a, b) => dirMul * (a[key] - b[key]) || (b.total - a.total);
         const prefRank = {};
-        rows.forEach(r => { if(!(r.pref in prefRank)) prefRank[r.pref] = Object.keys(prefRank).length; });
+        [...rows].sort(byKey).forEach(r => { if(!(r.pref in prefRank)) prefRank[r.pref] = Object.keys(prefRank).length; });
         const rankOf = p => (p === "" ? 9999 : prefRank[p]);
-        rows.sort((a, b) => rankOf(a.pref) - rankOf(b.pref));
+        rows.sort((a, b) => (rankOf(a.pref) - rankOf(b.pref)) || byKey(a, b));
         document.getElementById('coverage-summary').innerHTML = `${targetReps.length ? '自分の担当' : '全担当（自分のピン未設定）'}：訪問済み <b>${visitedAll.toLocaleString()}</b> / ${targets.length.toLocaleString()}件`;
         const list = document.getElementById('coverage-list'); list.innerHTML = "";
         const addRow = (r, clickable) => {
