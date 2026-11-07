@@ -1177,15 +1177,16 @@
             if(visited) g.visited++;
             if(typeof d.lat === 'number' && typeof d.lng === 'number' && d.lat && d.lng) { g.latSum += d.lat; g.lngSum += d.lng; g.geoN++; }
             if(!g.pref) { const pm = String(d.address || "").match(/(北海道|東京都|京都府|大阪府|[^\s　]{2,3}県)/); g.pref = pm ? pm[1] : label.split(" ")[0]; }
+            if(!g.block) g.block = g.pref + "|" + label.split(" ")[0];
         });
-        const rows = Object.values(groups).map(v => ({ label: v.label, total: v.total, visited: v.visited, pct: v.total ? Math.round(v.visited / v.total * 100) : 0, lat: v.geoN ? v.latSum / v.geoN : null, lng: v.geoN ? v.lngSum / v.geoN : null, pref: v.pref }));
+        const rows = Object.values(groups).map(v => ({ label: v.label, total: v.total, visited: v.visited, pct: v.total ? Math.round(v.visited / v.total * 100) : 0, lat: v.geoN ? v.latSum / v.geoN : null, lng: v.geoN ? v.lngSum / v.geoN : null, pref: v.pref, block: v.block }));
         const key = sortKey === 'pct' ? 'pct' : 'total';
         const dirMul = sortDir === 'asc' ? 1 : -1;
         const byKey = (a, b) => dirMul * (a[key] - b[key]) || (b.total - a.total);
         const prefRank = {};
-        [...rows].sort(byKey).forEach(r => { if(!(r.pref in prefRank)) prefRank[r.pref] = Object.keys(prefRank).length; });
+        [...rows].sort(byKey).forEach(r => { if(!(r.block in prefRank)) prefRank[r.block] = Object.keys(prefRank).length; });
         const rankOf = p => (p === "" ? 9999 : prefRank[p]);
-        rows.sort((a, b) => (rankOf(a.pref) - rankOf(b.pref)) || byKey(a, b));
+        rows.sort((a, b) => (rankOf(a.block) - rankOf(b.block)) || byKey(a, b));
         document.getElementById('coverage-summary').innerHTML = `${targetReps.length ? '自分の担当' : '全担当（自分のピン未設定）'}：訪問済み <b>${visitedAll.toLocaleString()}</b> / ${targets.length.toLocaleString()}件`;
         const list = document.getElementById('coverage-list'); list.innerHTML = "";
         const addRow = (r, clickable) => {
