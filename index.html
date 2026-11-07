@@ -405,7 +405,7 @@
         .customer-item .info-sub { margin-top: 3px; line-height: 1.3; }
         .customer-item .action-btn { min-height: 44px; }
         .action-btn.visit-done { background: #fdf6e3; border-color: #d9a94a; color: #8a6d1f; }
-        .unvisited-toggle { margin-left: auto; align-self: center; flex: none; padding: 6px 12px; border-radius: 999px; border: 1px solid #d8e2ec; background: #fff; color: #536b7d; font-size: 0.75rem; font-weight: 700; cursor: pointer; font-family: inherit; }
+        .unvisited-toggle { align-self: center; flex: none; padding: 6px 12px; border-radius: 999px; border: 1px solid #d8e2ec; background: #fff; color: #536b7d; font-size: 0.75rem; font-weight: 700; cursor: pointer; font-family: inherit; }
         .unvisited-toggle.on { background: #25475f; border-color: #25475f; color: #fff; }
     
         /* 連動ラベルとトグルの中心を exact に合わせる */
@@ -487,13 +487,16 @@
             <button class="search-go-btn" onclick="doSearch()">検索</button>
         </div>
 
-        <div class="counts-row"><div class="c"><span class="n" id="cntAll">-</span><span class="l">該当</span></div><div class="c mine"><span class="n" id="cntMine">-</span><span class="l">自分の顧客</span></div><div class="c others"><span class="n" id="cntOthers">-</span><span class="l">他担当の顧客</span></div><button id="unvisitedToggle" class="unvisited-toggle" onclick="toggleUnvisited()">未訪問のみ</button></div>
+        <div class="counts-row"><div class="c"><span class="n" id="cntAll">-</span><span class="l">該当</span></div><div class="c mine"><span class="n" id="cntMine">-</span><span class="l">自分の顧客</span></div><div class="c others"><span class="n" id="cntOthers">-</span><span class="l">他担当の顧客</span></div></div>
         <div id="stats-area">
             <div class="stats-header">
                 <div class="stats-total" id="stats-total-text">-- 件</div>
             </div>
             <div id="display-count-text" style="font-size:0.75rem; color:var(--text-sub); margin-bottom:10px; font-family:var(--font-serif);"></div>
-            <div class="stats-grid" id="stats-detail"></div>
+            <div style="display:flex; align-items:center; gap:7px;">
+                <div class="stats-grid" id="stats-detail" style="flex:1; min-width:0;"></div>
+                <button id="unvisitedToggle" class="unvisited-toggle" onclick="toggleUnvisited()">未訪問のみ</button>
+            </div>
         </div>
 
         </div>
