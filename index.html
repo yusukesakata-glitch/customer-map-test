@@ -55,12 +55,12 @@
         .search-box-style {
             display: flex; align-items: center; background: var(--glass);
             backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-            border-radius: 999px; padding: 4px 8px 4px 18px;
+            border-radius: 999px; padding: 2px 6px 2px 16px;
             box-shadow: var(--shadow); border: 1px solid rgba(255,255,255,0.7);
         }
         .place-search-box { flex: 1; }
         .search-input-style {
-            flex: 1; border: none !important; box-shadow: none !important; padding: 10px 0; font-size: 0.95rem;
+            flex: 1; border: none !important; box-shadow: none !important; padding: 7px 0; font-size: 0.9rem;
             background: transparent !important; outline: none; font-family: var(--font-serif); min-width: 0; width: auto;
         }
         .search-btn-style {
@@ -72,7 +72,7 @@
         .right-section {
             position: absolute; inset: 0; z-index: 20;
             display: flex; flex-direction: column;
-            padding: 66px 10px 10px; pointer-events: none;
+            padding: 60px 10px 10px; pointer-events: none;
         }
         .right-section > * { pointer-events: auto; }
         .right-section > div[style*="height:80px"] { display: none; }
@@ -144,7 +144,7 @@
         .counts-row .l { font-size: 10.5px; color: var(--text-sub); font-weight: 600; margin-left: 5px; }
         .counts-row .mine .n { color: var(--gold-dark); }
         .counts-row .others .n { color: var(--navy); }
-        .sync-inline { margin-left: auto; display: flex; align-items: center; gap: 7px; font-size: 0.78rem; font-weight: 700; color: var(--navy-dark); }
+        .sync-float { align-self: flex-end; margin-top: 8px; background: var(--glass); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.7); border-radius: 999px; box-shadow: var(--shadow); padding: 6px 12px; display: flex; align-items: center; gap: 7px; font-size: 0.78rem; font-weight: 700; color: var(--navy-dark); }
         #stats-area { padding: 10px 14px 0; margin: 0; background: transparent; box-shadow: none; }
         .stats-header { display: none; }
         #display-count-text { display: none; }
@@ -167,7 +167,7 @@
         /* 結果：下部の横カルーセル */
         #result-area {
             margin-top: auto; display: flex; gap: 10px; overflow-x: auto;
-            scroll-snap-type: x mandatory; padding: 6px 2px 4px;
+            scroll-snap-type: x mandatory; padding: 6px 2px 4px; align-items: flex-start;
             scrollbar-width: none;
         }
         #result-area::-webkit-scrollbar { display: none; }
@@ -231,7 +231,7 @@
 
         /* 地図上のボタン類 */
         .btn-current-loc {
-            position: absolute; bottom: 254px; right: 12px; z-index: 40;
+            position: absolute; bottom: 268px; right: 12px; z-index: 40;
             width: 46px; height: 46px; background: var(--card); border-radius: 50%;
             box-shadow: 0 4px 15px rgba(21,42,71,0.22); border: none;
             color: var(--navy); cursor: pointer;
@@ -400,7 +400,7 @@
             <button class="search-go-btn" onclick="resetAndRender()">検索</button>
         </div>
 
-        <div class="counts-row"><div class="c"><span class="n" id="cntAll">-</span><span class="l">該当</span></div><div class="c mine"><span class="n" id="cntMine">-</span><span class="l">自分の顧客</span></div><div class="c others"><span class="n" id="cntOthers">-</span><span class="l">他担当の顧客</span></div><div class="sync-inline"><span>連動</span><label class="toggle-switch"><input type="checkbox" id="mapSyncToggle" onchange="toggleMapSync()"><span class="slider"></span></label></div></div>
+        <div class="counts-row"><div class="c"><span class="n" id="cntAll">-</span><span class="l">該当</span></div><div class="c mine"><span class="n" id="cntMine">-</span><span class="l">自分の顧客</span></div><div class="c others"><span class="n" id="cntOthers">-</span><span class="l">他担当の顧客</span></div></div>
         <div id="stats-area">
             <div class="stats-header">
                 <div class="stats-total" id="stats-total-text">-- 件</div>
@@ -410,6 +410,7 @@
         </div>
 
         </div>
+        <div class="sync-float"><span>連動</span><label class="toggle-switch"><input type="checkbox" id="mapSyncToggle" onchange="toggleMapSync()"><span class="slider"></span></label></div>
         <div id="result-area"></div>
         <button id="load-more-btn" class="btn-load-more" onclick="loadMore()" style="display:none;">もっと見る</button>
 
@@ -1018,7 +1019,7 @@
         document.getElementById('display-count-text').innerText = `表示中: ${Math.min(targets.length, currentLimit)}`;
         const _mineCnt = targets.filter(d => targetReps.includes(d.rep_name)).length;
         document.getElementById('cntAll').innerText = targets.length;
-        document.getElementById('cntMine').innerText = _mineCnt;
+        document.getElementById('cntMine').innerText = targetReps.length ? _mineCnt : '–';
         document.getElementById('cntOthers').innerText = targets.length - _mineCnt;
         
         const displayTargets = targets.slice(0, currentLimit);
