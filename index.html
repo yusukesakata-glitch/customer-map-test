@@ -793,6 +793,8 @@
         if (!watchId) {} else if (isTrackingLocked) { btn.classList.add('locked'); } else { btn.classList.add('unlocked'); }
     }
 
+    function releaseFollow() { if(watchId) { isTrackingLocked = false; nearbySort = null; updateGpsBtnState(); } }
+
     function toggleGPS() {
         if (!navigator.geolocation) return alert("位置情報が使えません");
         if (!map) return alert("先にAPIキーを設定してください");
@@ -827,14 +829,14 @@
         const q = normalize(raw);
         const hits = db.filter(d => d.lat && d.lng && normalize(d.name + d.r_code + d.rep_name + d.address + (d.building||"") + (d.station||"")).includes(q));
         if(hits.length === 1) {
-            map.setCenter({ lat: hits[0].lat, lng: hits[0].lng }); map.setZoom(15);
+            releaseFollow(); map.setCenter({ lat: hits[0].lat, lng: hits[0].lng }); map.setZoom(15);
         } else if(hits.length > 1) {
             const b = new google.maps.LatLngBounds();
             hits.slice(0, 200).forEach(d => b.extend({ lat: d.lat, lng: d.lng }));
             map.fitBounds(b, 60);
         } else if(geocoder) {
             geocoder.geocode({ address: raw }, (results, status) => {
-                if (status === 'OK') { map.setCenter(results[0].geometry.location); map.setZoom(14); if(mapSyncMode) resetAndRender(); }
+                if (status === 'OK') { releaseFollow(); map.setCenter(results[0].geometry.location); map.setZoom(14); if(mapSyncMode) resetAndRender(); }
             });
         }
     }
@@ -843,7 +845,7 @@
         const input = document.getElementById('searchInput').value;
         if(!input || !geocoder) return;
         geocoder.geocode({ address: input }, (results, status) => {
-            if (status === 'OK') { map.setCenter(results[0].geometry.location); map.setZoom(14); if(mapSyncMode) resetAndRender(); }
+            if (status === 'OK') { releaseFollow(); map.setCenter(results[0].geometry.location); map.setZoom(14); if(mapSyncMode) resetAndRender(); }
         });
     }
 
@@ -1028,7 +1030,7 @@
                 v.innerText = it.count;
                 v.style.backgroundColor = it.isMe ? "#d9a94a" : "#3868a8";
                 const cm = new AdvancedMarkerElement({ position: {lat: it.lat, lng: it.lng}, map: map, content: v, zIndex: 500 });
-                cm.addListener("click", () => { window._syncSuppressUntil = Date.now() + 900; map.panTo({lat: it.lat, lng: it.lng}); map.setZoom(Math.min((map.getZoom() || 13) + 2, 17)); });
+                cm.addListener("click", () => { window._syncSuppressUntil = Date.now() + 900; releaseFollow(); map.panTo({lat: it.lat, lng: it.lng}); map.setZoom(Math.min((map.getZoom() || 13) + 2, 17)); });
                 markers.push(cm); bounds.extend(cm.position); hasPin = true;
                 return;
             }
@@ -1221,7 +1223,8 @@
     }
 
     function panToMap(id, lat, lng) { 
-        highlightedId = id; 
+        highlightedId = id;
+        releaseFollow();
 
         map.setZoom(17); 
         map.panTo({lat, lng}); 
@@ -1349,7 +1352,7 @@
                 document.querySelectorAll('.customer-item.highlighted').forEach(el => el.classList.remove('highlighted'));
                 best.classList.add('highlighted');
                 if(window._lastDisplay) { window._pinsNoFit = true; updateMapPins(window._lastDisplay); }
-                if(map && c.lat && c.lng) { window._syncSuppressUntil = Date.now() + 900; map.panTo({ lat: c.lat, lng: c.lng }); }
+                if(map && c.lat && c.lng) { window._syncSuppressUntil = Date.now() + 900; releaseFollow(); map.panTo({ lat: c.lat, lng: c.lng }); }
             }, 220);
         }, { passive: true });
     })();
