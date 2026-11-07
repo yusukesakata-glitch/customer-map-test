@@ -404,6 +404,9 @@
         .customer-item .info-main { margin-bottom: 2px; }
         .customer-item .info-sub { margin-top: 3px; line-height: 1.3; }
         .customer-item .action-btn { min-height: 44px; }
+        .action-btn.visit-done { background: #fdf6e3; border-color: #d9a94a; color: #8a6d1f; }
+        .unvisited-toggle { margin-left: auto; align-self: center; flex: none; padding: 6px 12px; border-radius: 999px; border: 1px solid #d8e2ec; background: #fff; color: #536b7d; font-size: 0.75rem; font-weight: 700; cursor: pointer; font-family: inherit; }
+        .unvisited-toggle.on { background: #25475f; border-color: #25475f; color: #fff; }
     
         /* 連動ラベルとトグルの中心を exact に合わせる */
         .sync-float > span { display: flex; align-items: center; height: 20px; line-height: 1; }
@@ -484,7 +487,7 @@
             <button class="search-go-btn" onclick="doSearch()">検索</button>
         </div>
 
-        <div class="counts-row"><div class="c"><span class="n" id="cntAll">-</span><span class="l">該当</span></div><div class="c mine"><span class="n" id="cntMine">-</span><span class="l">自分の顧客</span></div><div class="c others"><span class="n" id="cntOthers">-</span><span class="l">他担当の顧客</span></div></div>
+        <div class="counts-row"><div class="c"><span class="n" id="cntAll">-</span><span class="l">該当</span></div><div class="c mine"><span class="n" id="cntMine">-</span><span class="l">自分の顧客</span></div><div class="c others"><span class="n" id="cntOthers">-</span><span class="l">他担当の顧客</span></div><button id="unvisitedToggle" class="unvisited-toggle" onclick="toggleUnvisited()">未訪問のみ</button></div>
         <div id="stats-area">
             <div class="stats-header">
                 <div class="stats-total" id="stats-total-text">-- 件</div>
@@ -600,6 +603,28 @@
     let watchId = null;
     let isTrackingLocked = false;
     let nearbySort = null;
+    let unvisitedOnly = false;
+    const VISIT_DATE_RE = /(19|20)\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])/;
+    function todayStamp() { const d = new Date(); return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`; }
+    function toggleUnvisited() { unvisitedOnly = !unvisitedOnly; const b = document.getElementById('unvisitedToggle'); if(b) b.classList.toggle('on', unvisitedOnly); resetAndRender(); }
+    function visitShop(id, btn) {
+        const rec = db.find(x => x.id === id);
+        if(!rec) return;
+        const stamp = todayStamp();
+        if((rec.note || "").includes(stamp + "訪問")) return;
+        rec.note = stamp + "訪問" + (rec.note || "");
+        saveDB();
+        if(btn) {
+            btn.classList.add('visit-done');
+            btn.innerHTML = '<svg class="svg-icon" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> 訪問済';
+            const card = btn.closest('.customer-item');
+            if(card) {
+                let nb = card.querySelector('.note-box');
+                if(nb) nb.textContent = rec.note;
+                else { const d = document.createElement('div'); d.className = 'note-box'; d.textContent = rec.note; const host = card.querySelector(':scope > div'); if(host) host.appendChild(d); }
+            }
+        }
+    }
     let lastNearbyPoint = null;
     let quickChips = ["不在", "移転", "商談中", "完了"];
     
@@ -1160,6 +1185,7 @@
         });
 
         let targets = activeReps.size ? filtered.filter(d => activeReps.has(d.rep_name)) : filtered;
+        if(unvisitedOnly) targets = targets.filter(d => !VISIT_DATE_RE.test(d.note || ""));
         document.getElementById('stats-total-text').innerText = mapSyncMode ? `地図範囲` : `該当: ${targets.length}`;
         document.getElementById('display-count-text').innerText = `表示中: ${Math.min(targets.length, currentLimit)}`;
         const _mineCnt = targets.filter(d => targetReps.includes(d.rep_name)).length;
@@ -1237,6 +1263,10 @@
                     <svg class="svg-icon" viewBox="0 0 24 24"><path d="M21.71 11.29l-9-9c-.39-.39-1.02-.39-1.41 0l-9 9c-.39.39-.39 1.02 0 1.41l9 9c.39.39 1.02.39 1.41 0l9-9c.39-.39.39-1.02 0-1.41zM14 14.5V12h-4v3H8v-4c0-.55.45-1 1-1h5V7.5l3.5 3.5-3.5 3.5z"/></svg>
                     経路
                 </a>
+                <button onclick="visitShop('${c.id}', this)" class="action-btn${(c.note || "").includes(todayStamp() + "訪問") ? ' visit-done' : ''}">
+                    <svg class="svg-icon" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                    ${(c.note || "").includes(todayStamp() + "訪問") ? '訪問済' : '訪問'}
+                </button>
                 <button onclick="panToMap('${c.id}', ${c.lat},${c.lng})" class="action-btn">
                     <svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
                     地図
