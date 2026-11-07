@@ -553,7 +553,6 @@
                 <button class="btn-sub" onclick="exportNotes()">メモ書出</button>
                 <input type="file" id="fileInput" accept=".json,application/json" style="display:none" onchange="uploadData(this)">
             </div>
-            <button class="btn-del" onclick="clearAll()">全データ削除</button>
             <div id="log-area" style="margin-top:10px; font-size:0.7rem; color:#999; text-align:center;"></div>
         </div>
 
@@ -667,7 +666,7 @@
         } else {
             document.getElementById('map-placeholder-msg').innerHTML = "設定からAPIキーを<br>設定してください";
         }
-        document.getElementById('current-db-name').innerText = (() => { try { const raw = localStorage.getItem(DB_NAME); if(!raw) return "0件"; return JSON.parse(raw).length.toLocaleString() + "件（約" + (new Blob([raw]).size / 1048576).toFixed(1) + "MB）"; } catch(e) { return "-"; } })();
+        document.getElementById('current-db-name').innerText = (() => { try { const raw = localStorage.getItem(DB_NAME); if(!raw) return "0件"; let _t = JSON.parse(raw).length.toLocaleString() + "件（約" + (new Blob([raw]).size / 1048576).toFixed(1) + "MB）"; try { const _info = JSON.parse(localStorage.getItem('map_data_info') || "null"); if(_info && _info.fileDate) _t += "・" + _info.fileDate + "のファイル"; } catch(e) {} return _t; } catch(e) { return "-"; } })();
         
         changeRegMode();
     };
@@ -739,7 +738,7 @@
                 const div = document.createElement('div'); 
                 div.style.display="flex"; div.style.justifyContent="space-between"; div.style.padding="8px"; div.style.borderBottom="1px solid #eee";
                 const _raw = localStorage.getItem(key) || ""; const _label = key === DB_NAME ? `顧客データ（${db.length.toLocaleString()}件・約${(new Blob([_raw]).size / 1048576).toFixed(1)}MB）` : key;
-                div.innerHTML = `<div style="font-weight:500;font-size:0.85rem;">${_label}</div><button onclick="forceDelete('${key}')" style="background:#fff;border:1px solid #ddd;border-radius:2px;font-size:0.7rem;padding:2px 8px;cursor:pointer;">削除</button>`;
+                div.innerHTML = `<div style="font-weight:500;font-size:0.85rem;">${_label}</div>`;
                 storageList.appendChild(div);
             }
         }
@@ -1432,9 +1431,8 @@
         const a = document.createElement('a');
         a.href = url; a.download = `notes-${_ymd}.txt`; a.click();
     }
-    function uploadData(i) { const f=i.files[0]; if(!f)return; const r=new FileReader(); r.onload=e=>{ try { const incoming = JSON.parse(e.target.result); if(!Array.isArray(incoming)) { alert("読み込み失敗"); return; } if(confirm("JSONファイルを読み込みますか？")) { const noteByCode = {}; db.forEach(d => { if(d.r_code && (d.note || "").trim()) noteByCode[d.r_code] = d.note; }); let kept = 0; incoming.forEach(d => { if(d.r_code && !(d.note || "").trim() && noteByCode[d.r_code]) { d.note = noteByCode[d.r_code]; kept++; } }); db = incoming; saveDB(); populateFilters(); resetAndRender(); alert(`読み込み完了（メモ ${kept} 件を引き継ぎました）`); } } catch(z) { alert("読み込み失敗"); } }; r.readAsText(f); }
+    function uploadData(i) { const f=i.files[0]; i.value=""; if(!f)return; const _fd = f.lastModified ? new Date(f.lastModified) : null; const _fds = _fd ? `${_fd.getFullYear()}-${String(_fd.getMonth()+1).padStart(2,'0')}-${String(_fd.getDate()).padStart(2,'0')}` : ""; const r=new FileReader(); r.onload=e=>{ try { const incoming = JSON.parse(e.target.result); if(!Array.isArray(incoming)) { alert("読み込み失敗"); return; } if(confirm(`JSONファイルを読み込みますか？\nデータ ${incoming.length.toLocaleString()} 件${_fds ? `／ファイル日付 ${_fds}` : ""}`)) { localStorage.setItem('map_data_info', JSON.stringify({ count: incoming.length, fileDate: _fds })); const noteByCode = {}; db.forEach(d => { if(d.r_code && (d.note || "").trim()) noteByCode[d.r_code] = d.note; }); let kept = 0; incoming.forEach(d => { if(d.r_code && !(d.note || "").trim() && noteByCode[d.r_code]) { d.note = noteByCode[d.r_code]; kept++; } }); db = incoming; saveDB(); populateFilters(); resetAndRender(); alert(`読み込み完了（メモ ${kept} 件を引き継ぎました）`); } } catch(z) { alert("読み込み失敗"); } }; r.readAsText(f); }
     function saveDB() { localStorage.setItem(DB_NAME, JSON.stringify(db)); }
-    function clearAll() { if(confirm("全データを削除しますか？")) { localStorage.removeItem(DB_NAME); location.reload(); } }
 
     // カルーセルの終端が近づいたら次のカードを自動で足す
     (function(){
