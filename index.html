@@ -434,6 +434,14 @@
         .card-addr { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.4; }
         .card-addr-row { align-items: flex-start; }
         .card-addr-row .btn-copy { padding: 1px 4px; }
+    
+        .cov-open { margin-left: auto; background: none; border: none; color: #3868a8; font-size: 0.74rem; font-weight: 700; cursor: pointer; padding: 4px 0 4px 10px; white-space: nowrap; align-self: center; }
+        .cov-row { padding: 10px 2px; border-bottom: 1px solid #eef3f7; cursor: pointer; }
+        .cov-head { display: flex; justify-content: space-between; align-items: baseline; }
+        .cov-name { font-weight: 700; color: #163b5b; font-size: 0.88rem; }
+        .cov-num { color: var(--text-sub); font-size: 0.78rem; }
+        .cov-bar { height: 5px; background: #edf5fc; border-radius: 99px; margin-top: 6px; overflow: hidden; }
+        .cov-fill { height: 100%; background: var(--gold); border-radius: 99px; }
     </style>
 </head>
 <body>
@@ -466,7 +474,7 @@
             <button class="search-go-btn" onclick="doSearch()">検索</button>
         </div>
 
-        <div class="counts-row"><div class="c"><span class="n" id="cntAll">-</span><span class="l">該当</span></div><div class="c mine"><span class="n" id="cntMine">-</span><span class="l">自分の顧客</span></div><div class="c others"><span class="n" id="cntOthers">-</span><span class="l">他担当の顧客</span></div></div>
+        <div class="counts-row"><div class="c"><span class="n" id="cntAll">-</span><span class="l">該当</span></div><div class="c mine"><span class="n" id="cntMine">-</span><span class="l">自分の顧客</span></div><div class="c others"><span class="n" id="cntOthers">-</span><span class="l">他担当の顧客</span></div><button class="cov-open" onclick="openCoverage()">駅別カバー率</button></div>
         <div id="stats-area">
             <div class="stats-header">
                 <div class="stats-total" id="stats-total-text">-- 件</div>
@@ -560,6 +568,16 @@
         </div>
 
         <button class="btn-sub" style="width:100%; background:#f5f5f5; border:none;" onclick="document.getElementById('settingsModal').style.display='none'">閉じる</button>
+    </div>
+</div>
+
+<div id="coverageModal" class="modal-overlay">
+    <div class="modal-content">
+        <h3>駅ごとの訪問カバー率</h3>
+        <div id="coverage-summary" style="font-size:0.85rem; margin-bottom:6px;"></div>
+        <div style="font-size:0.7rem; color:#999; margin-bottom:10px;">訪問済み＝日付入りのメモがある店／駅をタップするとその駅で検索します（未訪問が多い順・50駅まで）</div>
+        <div id="coverage-list"></div>
+        <button class="btn-sub" style="width:100%; margin-top:15px;" onclick="closeCoverage()">閉じる</button>
     </div>
 </div>
 
@@ -1112,6 +1130,35 @@
     }
 
     function toggleMapSync() { mapSyncMode = true; resetAndRender(); }
+    function openCoverage() {
+        const q = normalize(document.getElementById('searchInput').value);
+        const filtered = db.filter(d => matchCustomer(d, q));
+        const targets = activeReps.size ? filtered.filter(d => activeReps.has(d.rep_name)) : filtered;
+        const byStation = {};
+        let visitedAll = 0;
+        targets.forEach(d => {
+            const visited = /\d{8}/.test(d.note || "");
+            if(visited) visitedAll++;
+            const st = (d.station || "").trim();
+            if(!st) return;
+            if(!byStation[st]) byStation[st] = { total: 0, visited: 0 };
+            byStation[st].total++;
+            if(visited) byStation[st].visited++;
+        });
+        const rows = Object.entries(byStation).map(([st, v]) => ({ st, total: v.total, visited: v.visited, unvisited: v.total - v.visited, pct: v.total ? Math.round(v.visited / v.total * 100) : 0 }));
+        rows.sort((a, b) => (b.unvisited - a.unvisited) || (b.total - a.total));
+        document.getElementById('coverage-summary').innerHTML = `全体：訪問済み <b>${visitedAll.toLocaleString()}</b> / ${targets.length.toLocaleString()}件`;
+        const list = document.getElementById('coverage-list'); list.innerHTML = "";
+        rows.slice(0, 50).forEach(r => {
+            const div = document.createElement('div'); div.className = 'cov-row';
+            div.innerHTML = `<div class="cov-head"><span class="cov-name">${r.st}</span><span class="cov-num">${r.visited}/${r.total}（${r.pct}%）</span></div><div class="cov-bar"><div class="cov-fill" style="width:${r.pct}%"></div></div>`;
+            div.onclick = () => { document.getElementById('searchInput').value = r.st; closeCoverage(); doSearch(); };
+            list.appendChild(div);
+        });
+        if(!rows.length) list.innerHTML = '<div style="font-size:0.85rem; color:#999;">対象の店がありません</div>';
+        document.getElementById('coverageModal').style.display = 'flex';
+    }
+    function closeCoverage() { document.getElementById('coverageModal').style.display = 'none'; }
     function splitName(c) {
         const hw = (t) => (t || "").replace(/[Ａ-Ｚａ-ｚ０-９]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0));
         if(c.company || c.shop) return { company: hw(c.company || ""), shop: hw(c.shop || "") };
@@ -1203,6 +1250,10 @@
                 <a href="tel:${c.tel}" class="action-btn">
                     <svg class="svg-icon" viewBox="0 0 24 24"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 0 0-1.01.24l-2.2 2.2a15.053 15.053 0 0 1-6.59-6.59l2.2-2.21c.28-.26.36-.65.25-1.01A11.36 11.36 0 0 1 8.5 4c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1 0 9.39 7.61 17 17 17 .55 0 1-.45 1-1v-3.5c0-.55-.45-1-1-1z"/></svg>
                     発信
+                </a>
+                <a href="https://www.google.com/maps/dir/?api=1&destination=${(c.lat && c.lng) ? (c.lat + ',' + c.lng) : encodeURIComponent(c.address + (c.building ? ' ' + c.building : ''))}" target="_blank" rel="noopener" class="action-btn">
+                    <svg class="svg-icon" viewBox="0 0 24 24"><path d="M21.71 11.29l-9-9c-.39-.39-1.02-.39-1.41 0l-9 9c-.39.39-.39 1.02 0 1.41l9 9c.39.39 1.02.39 1.41 0l9-9c.39-.39.39-1.02 0-1.41zM14 14.5V12h-4v3H8v-4c0-.55.45-1 1-1h5V7.5l3.5 3.5-3.5 3.5z"/></svg>
+                    経路
                 </a>
                 <button onclick="panToMap('${c.id}', ${c.lat},${c.lng})" class="action-btn">
                     <svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
