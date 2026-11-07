@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>モック7：会社カラー＋全機能（修正版）｜顧客マップ</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; font-family: -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif; }
+  body { position: relative; overflow: hidden; color: #1c2430; }
+  :root { --navy: #1f3a5f; --navy-dark: #152a47; --gold: #d9a94a; --gold-dark: #b4832a; --gold-light: #e7c878; }
+  #map { position: absolute; inset: 0; }
+  .glass { background: rgba(255,255,255,.92); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,.7); box-shadow: 0 8px 28px rgba(21,42,71,.18); }
+  .topbar { position: absolute; top: 10px; left: 10px; right: 10px; z-index: 600; border-radius: 16px; padding: 10px 12px 12px; }
+  .brandrow { display: flex; align-items: center; gap: 8px; }
+  .logomark { width: 24px; height: 24px; border-radius: 7px; overflow: hidden; display: flex; flex: none; }
+  .logomark i { flex: 1; } .logomark .a { background: var(--navy); } .logomark .b { background: var(--gold); }
+  .topbar h1 { font-size: 16px; font-weight: 800; color: var(--navy-dark); white-space: nowrap; }
+  .topbar .mocktag { font-size: 9px; color: #a8a29e; white-space: nowrap; }
+  .spacer { flex: 1; }
+  .iconbtn { width: 36px; height: 36px; flex: none; border: 1px solid #e3e0d8; background: #fff; border-radius: 10px; font-size: 16px; display: grid; place-items: center; }
+  .search { margin-top: 9px; display: flex; gap: 7px; }
+  .search input { flex: 1; min-width: 0; border: 1px solid #e7e5e0; background: #f7f6f2; border-radius: 999px; padding: 8px 13px; font-size: 13px; outline: none; }
+  .search button { flex: none; border: none; background: var(--navy); color: #fff; border-radius: 999px; padding: 0 15px; font-size: 13px; font-weight: 700; }
+  .counts { display: flex; gap: 20px; margin-top: 10px; }
+  .counts .c { display: flex; align-items: baseline; gap: 6px; white-space: nowrap; }
+  .counts .n { font-size: 21px; font-weight: 800; line-height: 1; color: var(--navy-dark); font-variant-numeric: tabular-nums; }
+  .counts .l { font-size: 10.5px; color: #8a8378; font-weight: 600; }
+  .counts .mine .n { color: var(--gold-dark); }
+  .counts .others .n { color: var(--navy); }
+  .filters { display: flex; gap: 6px; margin-top: 9px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+  .filters::-webkit-scrollbar { display: none; }
+  .filters select { border: 1px solid #e3e0d8; background: #fff; border-radius: 999px; padding: 6px 8px; font-size: 12px; color: #3f4756; flex: none; max-width: 150px; }
+  .seg { display: flex; gap: 6px; margin-top: 9px; }
+  .seg button { border: none; background: rgba(31,58,95,.08); border-radius: 999px; padding: 6px 13px; font-size: 12px; font-weight: 700; color: var(--navy); }
+  .seg button.on { background: var(--navy); color: #fff; }
+  .locate { position: absolute; right: 12px; bottom: 178px; z-index: 600; width: 44px; height: 44px; border-radius: 50%; border: 1px solid #e3e0d8; font-size: 18px; color: var(--navy); display: grid; place-items: center; }
+  .locate .dot-on { position: absolute; top: 4px; right: 4px; width: 9px; height: 9px; border-radius: 50%; background: var(--gold); border: 1.5px solid #fff; }
+  .carousel { position: absolute; left: 0; right: 0; bottom: 12px; z-index: 600; display: flex; gap: 10px; overflow-x: auto; padding: 4px 12px 6px; scroll-snap-type: x mandatory; scrollbar-width: none; }
+  .carousel::-webkit-scrollbar { display: none; }
+  .store { scroll-snap-align: center; flex: 0 0 76%; border-radius: 16px; padding: 13px 15px; }
+  .store h3 { font-size: 15px; font-weight: 800; color: var(--navy-dark); display: flex; align-items: center; gap: 7px; white-space: nowrap; overflow: hidden; }
+  .store p { font-size: 12px; color: #57534e; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .store .foot { display: flex; gap: 6px; margin-top: 10px; }
+  .store .foot button { flex: 1; border: none; border-radius: 10px; padding: 9px 0; font-size: 13px; font-weight: 700; }
+  .store .nav { background: var(--navy); color: #fff; }
+  .store .detail { background: rgba(31,58,95,.08); color: var(--navy); }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  .dist { margin-left: auto; font-size: 13px; font-weight: 800; color: var(--navy); flex: none; }
+  .credit { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; background: #fdf3e0; color: #92600f; border: 1px solid var(--gold-light); white-space: nowrap; }
+  .pin { width: 28px; height: 28px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); border: 3px solid #fff; box-shadow: 0 4px 12px rgba(21,42,71,.35); }
+  .modal { position: absolute; inset: 0; z-index: 900; display: none; align-items: flex-end; background: rgba(21,42,71,.35); }
+  .sheet { background: #fff; width: 100%; max-height: 82%; overflow-y: auto; border-radius: 20px 20px 0 0; padding: 16px 18px 22px; }
+  .sheet h2 { font-size: 17px; font-weight: 800; color: var(--navy-dark); display: flex; align-items: center; gap: 8px; }
+  .sheet .close { margin-left: auto; border: none; background: #f1efe9; width: 32px; height: 32px; border-radius: 50%; font-size: 15px; flex: none; }
+  .kv { margin-top: 10px; border-top: 1px solid #f0eee8; }
+  .kv div { display: flex; gap: 10px; padding: 8px 2px; border-bottom: 1px solid #f0eee8; font-size: 13px; }
+  .kv dt { width: 70px; flex: none; color: #8a8378; font-size: 12px; padding-top: 1px; }
+  .kv dd { flex: 1; }
+  .kv a { color: var(--navy); font-weight: 700; text-decoration: none; }
+  .memo { margin-top: 14px; }
+  .memo h4 { font-size: 13px; color: var(--navy-dark); }
+  .memo .note { background: #f7f6f2; border-radius: 10px; padding: 9px 11px; font-size: 12.5px; margin-top: 7px; }
+  .memo .note small { display: block; color: #a8a29e; margin-top: 3px; font-size: 11px; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+  .chips button { border: 1px solid var(--gold-light); background: #fdf8ec; color: #92600f; border-radius: 999px; padding: 6px 11px; font-size: 12px; font-weight: 600; }
+  .memoAdd { display: flex; gap: 7px; margin-top: 10px; }
+  .memoAdd input { flex: 1; min-width: 0; border: 1px solid #e7e5e0; border-radius: 10px; padding: 9px 11px; font-size: 13px; }
+  .memoAdd button { flex: none; border: none; background: var(--gold); color: #fff; border-radius: 10px; padding: 0 14px; font-weight: 700; font-size: 13px; }
+  .actions { display: flex; gap: 8px; margin-top: 16px; }
+  .actions button { flex: 1; border-radius: 11px; padding: 11px 0; font-size: 13px; font-weight: 700; border: 1px solid #e3e0d8; background: #fff; color: var(--navy); }
+  .actions .edit { background: var(--navy); border-color: var(--navy); color: #fff; }
+  .actions .del { color: #b91c1c; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<div class="topbar glass">
+  <div class="brandrow">
+    <div class="logomark"><i class="a"></i><i class="b"></i></div>
+    <h1>顧客マップ</h1>
+    <span class="mocktag">MOCK 7</span>
+    <div class="spacer"></div>
+    <button class="iconbtn" title="データ取り込み">📥</button>
+    <button class="iconbtn" title="設定">⚙️</button>
+  </div>
+  <div class="search">
+    <input placeholder="店名・住所・担当者で検索">
+    <button>検索</button>
+  </div>
+  <div class="counts">
+    <div class="c"><span class="n">8</span><span class="l">範囲内すべて</span></div>
+    <div class="c mine"><span class="n">3</span><span class="l">自分の顧客</span></div>
+    <div class="c others"><span class="n">5</span><span class="l">他担当の顧客</span></div>
+  </div>
+  <div class="filters">
+    <select><option>担当：自分</option><option>担当：全員</option><option>担当：田中</option><option>担当：佐藤</option></select>
+    <select><option>都道府県</option><option>東京都</option></select>
+    <select><option>最寄り駅</option><option>両国駅</option><option>錦糸町駅</option></select>
+    <select><option>表示：全件</option><option>表示：100件</option><option>表示：300件</option></select>
+  </div>
+  <div class="seg"><button>500m</button><button class="on">1km</button><button>2km</button><button>5km</button></div>
+</div>
+
+<button class="locate glass" title="現在地">◎<span class="dot-on"></span></button>
+<div class="carousel" id="carousel"></div>
+
+<div class="modal" id="modal">
+  <div class="sheet">
+    <h2><span class="dot" style="background:var(--gold);"></span>マルエツ食品 両国店
+      <button class="close" onclick="document.getElementById('modal').style.display='none'">×</button>
+    </h2>
+    <dl class="kv">
+      <div><dt>住所</dt><dd>東京都墨田区両国3-8-5</dd></div>
+      <div><dt>ビル名</dt><dd>両国センタービル 2F</dd></div>
+      <div><dt>電話番号</dt><dd><a href="#">📞 03-3630-0000</a></dd></div>
+      <div><dt>最寄り駅</dt><dd>両国駅 徒歩4分</dd></div>
+      <div><dt>担当者</dt><dd>坂田 悠介（自分）</dd></div>
+      <div><dt>管理ID</dt><dd>R-1024</dd></div>
+      <div><dt>与信</dt><dd><span class="credit">通常</span></dd></div>
+    </dl>
+    <div class="memo">
+      <h4>メモ</h4>
+      <div class="note">店長が午前にいることが多い。次回は新商品のサンプルを持参。<small>2026/11/05 坂田</small></div>
+      <div class="note">年末商材の見積もりを送付済み。<small>2026/10/28 坂田</small></div>
+      <div class="chips">
+        <button>訪問済</button><button>不在</button><button>資料送付</button><button>見積提出</button><button>定型文を追加</button>
+      </div>
+      <div class="memoAdd"><input placeholder="メモを入力"><button>追加</button></div>
+    </div>
+    <div class="actions">
+      <button>コピー</button>
+      <button class="edit">情報編集</button>
+      <button class="del">削除</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const stores = [
+  { name: "マルエツ食品 両国店", addr: "墨田区両国3-8-5", rep: "坂田", mine: true, dist: "120m", lat: 35.6963, lng: 139.7935, note: "月2回訪問", credit: "" },
+  { name: "サカエ物産", addr: "墨田区亀沢2-11-3", rep: "坂田", mine: true, dist: "340m", lat: 35.6995, lng: 139.7985, note: "新規開拓中", credit: "" },
+  { name: "みどり食堂", addr: "墨田区石原1-22-5", rep: "坂田", mine: true, dist: "610m", lat: 35.7008, lng: 139.8010, note: "", credit: "前金" },
+  { name: "大川商店", addr: "墨田区本所2-7-1", rep: "田中", mine: false, dist: "480m", lat: 35.7035, lng: 139.8005, note: "", credit: "" },
+  { name: "錦糸町デリカ", addr: "墨田区錦糸1-4-9", rep: "佐藤", mine: false, dist: "890m", lat: 35.6975, lng: 139.8130, note: "キャンペーン対象", credit: "" },
+  { name: "すみだフーズ", addr: "墨田区緑3-14-5", rep: "田中", mine: false, dist: "950m", lat: 35.6910, lng: 139.8010, note: "", credit: "滞留中" }
+];
+const map = L.map("map", { zoomControl: false }).setView([35.6975, 139.7980], 14);
+L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "&copy; OpenStreetMap" }).addTo(map);
+L.circleMarker([35.6975, 139.7980], { radius: 8, color: "#fff", weight: 2.5, fillColor: "#16a34a", fillOpacity: 1 }).addTo(map);
+L.circle([35.6975, 139.7980], { radius: 1000, color: "#1f3a5f", weight: 1, fillOpacity: 0.04 }).addTo(map);
+const car = document.getElementById("carousel");
+stores.forEach(s => {
+  const color = s.mine ? "#d9a94a" : "#1f3a5f";
+  const icon = L.divIcon({ className: "", html: '<div class="pin" style="background:' + color + '"></div>', iconSize: [28, 28], iconAnchor: [14, 25], popupAnchor: [0, -22] });
+  L.marker([s.lat, s.lng], { icon }).addTo(map).bindPopup("<b>" + s.name + "</b><br>" + s.addr + "<br>担当：" + s.rep + (s.mine ? "（自分）" : ""));
+  const d = document.createElement("div");
+  d.className = "store glass";
+  d.innerHTML = '<h3><span class="dot" style="background:' + color + '"></span>' + s.name + '<span class="dist">' + s.dist + '</span></h3>' +
+    '<p>' + s.addr + ' ・ 担当 ' + s.rep + (s.note ? ' ・ ' + s.note : "") + (s.credit ? ' <span class="credit">与信：' + s.credit + '</span>' : "") + '</p>' +
+    '<div class="foot"><button class="nav">ここへ行く</button><button class="detail" onclick="document.getElementById(\'modal\').style.display=\'flex\'">詳細・メモ</button></div>';
+  car.appendChild(d);
+});
+</script>
+</body>
+</html>
