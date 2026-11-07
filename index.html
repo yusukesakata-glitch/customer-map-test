@@ -1174,7 +1174,7 @@
             g.total++;
             if(visited) g.visited++;
             if(typeof d.lat === 'number' && typeof d.lng === 'number' && d.lat && d.lng) { g.latSum += d.lat; g.lngSum += d.lng; g.geoN++; }
-            if(!g.pref) { const pm = String(d.address || "").match(/(北海道|東京都|京都府|大阪府|[^\s　]{2,3}県)/); g.pref = pm ? pm[1] : label.split(" ")[0]; }
+            if(!g.pref) { const pm = String(d.address || "").match(/(北海道|東京都|京都府|大阪府|[\u4e00-\u9fa5]{2,3}県)/); g.pref = pm ? pm[1] : label.split(" ")[0]; }
             if(!g.block) g.block = g.pref + "|" + label.split(" ")[0];
         });
         const rows = Object.values(groups).map(v => ({ label: v.label, total: v.total, visited: v.visited, pct: v.total ? Math.round(v.visited / v.total * 100) : 0, lat: v.geoN ? v.latSum / v.geoN : null, lng: v.geoN ? v.lngSum / v.geoN : null, pref: v.pref, block: v.block }));
@@ -1231,7 +1231,7 @@
 
         if(mapSyncMode && map) {
             const center = map.getCenter();
-            filtered.forEach(d => d._dist = google.maps.geometry.spherical.computeDistanceBetween(center, new google.maps.LatLng(d.lat, d.lng)));
+            filtered.forEach(d => d._dist = (d.lat && d.lng) ? google.maps.geometry.spherical.computeDistanceBetween(center, new google.maps.LatLng(d.lat, d.lng)) : 1e12);
             filtered.sort((a, b) => a._dist - b._dist);
         }
 
@@ -1289,10 +1289,10 @@
                     <svg class="svg-icon" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
                     編集
                 </button>
-                <a href="tel:${c.tel}" class="action-btn">
+                ${c.tel ? `<a href="tel:${c.tel}" class="action-btn">
                     <svg class="svg-icon" viewBox="0 0 24 24"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 0 0-1.01.24l-2.2 2.2a15.053 15.053 0 0 1-6.59-6.59l2.2-2.21c.28-.26.36-.65.25-1.01A11.36 11.36 0 0 1 8.5 4c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1 0 9.39 7.61 17 17 17 .55 0 1-.45 1-1v-3.5c0-.55-.45-1-1-1z"/></svg>
                     発信
-                </a>
+                </a>` : ""}
                 <a href="https://www.google.com/maps/dir/?api=1&destination=${(c.lat && c.lng) ? (c.lat + ',' + c.lng) : encodeURIComponent(c.address + (c.building ? ' ' + c.building : ''))}" target="_blank" rel="noopener" class="action-btn">
                     <svg class="svg-icon" viewBox="0 0 24 24"><path d="M21.71 11.29l-9-9c-.39-.39-1.02-.39-1.41 0l-9 9c-.39.39-.39 1.02 0 1.41l9 9c.39.39 1.02.39 1.41 0l9-9c.39-.39.39-1.02 0-1.41zM14 14.5V12h-4v3H8v-4c0-.55.45-1 1-1h5V7.5l3.5 3.5-3.5 3.5z"/></svg>
                     経路
@@ -1310,15 +1310,17 @@
         window._appendCards = _take;
     }
 
-    function panToMap(id, lat, lng) { 
+    function panToMap(id, lat, lng) {
         highlightedId = id;
         releaseFollow();
-
-        map.setZoom(17); 
-        map.panTo({lat, lng}); 
-        
-        render();
-
+        if(lat && lng) { map.setZoom(17); map.panTo({lat, lng}); render(); return; }
+        const rec = db.find(x => x.id === id);
+        if(rec && geocoder) {
+            geocoder.geocode({ address: rec.address }, (results, status) => {
+                if(status === 'OK') { rec.lat = results[0].geometry.location.lat(); rec.lng = results[0].geometry.location.lng(); saveDB(); map.setZoom(17); map.panTo({ lat: rec.lat, lng: rec.lng }); render(); }
+                else alert("この店は座標が登録されておらず、住所からも特定できませんでした");
+            });
+        }
     }
     
     function loadMore() { currentLimit += parseInt(document.getElementById('limitSelect').value) || 100; render(); }
