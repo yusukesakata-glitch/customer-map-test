@@ -900,8 +900,7 @@
     function rowToObj(cols, idx, fallbackRep) {
         const g = (k) => (idx && idx[k] !== undefined) ? (cols[idx[k]] || "") : "";
         if(idx) return { r: g('r'), rep: g('rep') || fallbackRep, company: g('company'), shop: g('shop'), addr: g('addr'), build: g('build'), tel: g('tel'), credit: g('credit'), station: g('station'), note: g('note') };
-        if(cols.length >= 10) return { r: cols[0] || "", rep: cols[1] || fallbackRep, company: cols[2] || "", shop: cols[3] || "", addr: cols[4] || "", build: cols[5] || "", tel: cols[6] || "", credit: cols[7] || "", station: cols[8] || "", note: cols[9] || "" };
-        return { r: cols[0] || "", rep: fallbackRep, company: cols[1] || "", shop: cols[2] || "", addr: cols[3] || "", build: cols[4] || "", tel: cols[5] || "", credit: cols[6] || "", station: cols[7] || "", note: cols[8] || "" };
+        return { r: "", rep: "", company: "", shop: "", addr: "", build: "", tel: "", credit: "", station: "", note: "" };
     }
     async function upsertRows(objs) {
         let count = 0, updateCount = 0, failCount = 0, skipCount = 0; const failCodes = []; let noCoordCount = 0; const noCoordCodes = [];
@@ -947,7 +946,8 @@
             await initSystem(localStorage.getItem('map_apiKey'));
             const allRows = parseDelimited(window._importFileText);
             const idx = allRows.length ? mapHeader(allRows[0]) : null;
-            const dataRows = idx ? allRows.slice(1) : allRows;
+            if(!idx) { alert('CSVの見出し行が認識できませんでした。取り込みを中止します。'); return; }
+            const dataRows = allRows.slice(1);
             const objs = dataRows.filter(r => r.join("").trim() !== "").map(r => rowToObj(r, idx, ""));
             const res = await upsertRows(objs);
             window._importFileText = null;
