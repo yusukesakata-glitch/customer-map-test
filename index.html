@@ -582,7 +582,11 @@
         <label>担当者</label><input type="text" id="edit-rep">
         <label>管理ID</label><input type="text" id="edit-r">
         <label>与信</label><input type="text" id="edit-credit" placeholder="" style="color:var(--alert); font-weight:bold;">
-        <label>メモ</label><textarea id="edit-note" style="height:80px;"></textarea>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <label>メモ</label>
+            <button type="button" onclick="document.getElementById('edit-note').value=''" style="background:none; border:none; color:#71889a; font-size:0.78rem; font-weight:600; cursor:pointer; padding:0 2px; font-family:inherit;">クリア</button>
+        </div>
+        <textarea id="edit-note" style="height:80px;"></textarea>
         <div id="edit-chip-area" class="quick-chips" style="margin-bottom:15px;"></div>
         
         
@@ -1306,13 +1310,14 @@
 
         const chipArea = document.getElementById('edit-chip-area');
         chipArea.innerHTML = "";
+        const vst = document.createElement('span'); vst.className='chip'; vst.innerText='訪問済';
+        vst.style.background = '#fdf6e3'; vst.style.borderColor = '#d9a94a'; vst.style.color = '#8a6d1f';
+        vst.onclick = () => { const area = document.getElementById('edit-note'); const stamp = todayStamp(); if(!area.value.includes(stamp + "訪問")) area.value = stamp + "訪問" + area.value; };
+        chipArea.appendChild(vst);
         quickChips.forEach(t => {
             const sp = document.createElement('span'); sp.className='chip'; sp.innerText=t;
             sp.onclick = () => addNote(t); chipArea.appendChild(sp);
         });
-        const clr = document.createElement('span'); clr.className='chip'; clr.innerText='クリア';
-        clr.onclick = () => document.getElementById('edit-note').value='';
-        chipArea.appendChild(clr);
         document.getElementById('editModal').style.display='flex'; 
     }
 
