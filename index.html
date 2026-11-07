@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>顧客マップDB Pro（テスト版）</title>
+    <title>顧客マップ</title>
     
     
 
@@ -636,7 +636,7 @@
         }
     }
     let lastNearbyPoint = null;
-    let quickChips = ["不在", "移転", "商談中", "完了"];
+    let quickChips = [];
     
     let highlightedId = null;
       
@@ -654,6 +654,7 @@
     function normalize(s) { return (s||"").replace(/[Ａ-Ｚａ-ｚ０-９]/g, c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0)).toLowerCase().replace(/\s+/g,""); }
     function matchCustomer(c, q) { if(!q) return true; const t = normalize(c.name + c.r_code + c.rep_name + c.address + (c.building||"") + (c.station||"")); if(t.includes(q)) return true; if(q.length > 1 && q.endsWith("駅")) return normalize(c.station||"").includes(q.slice(0, -1)); return false; }
     function log(msg) { document.getElementById('log-area').innerText = msg; }
+    function updateStorageInfo() { const el = document.getElementById('current-db-name'); if(!el) return; try { const raw = localStorage.getItem(DB_NAME); if(!raw) { el.innerText = "0件"; return; } let _t = JSON.parse(raw).length.toLocaleString() + "件（約" + (new Blob([raw]).size / 1048576).toFixed(1) + "MB）"; try { const _info = JSON.parse(localStorage.getItem('map_data_info') || "null"); if(_info && _info.fileDate) _t += "・" + _info.fileDate + "のファイル"; } catch(e) {} el.innerText = _t; } catch(e) { el.innerText = "-"; } }
 
     window.onload = () => {
         const k = localStorage.getItem('map_apiKey');
@@ -673,7 +674,7 @@
         } else {
             document.getElementById('map-placeholder-msg').innerHTML = "設定からAPIキーを<br>設定してください";
         }
-        document.getElementById('current-db-name').innerText = (() => { try { const raw = localStorage.getItem(DB_NAME); if(!raw) return "0件"; let _t = JSON.parse(raw).length.toLocaleString() + "件（約" + (new Blob([raw]).size / 1048576).toFixed(1) + "MB）"; try { const _info = JSON.parse(localStorage.getItem('map_data_info') || "null"); if(_info && _info.fileDate) _t += "・" + _info.fileDate + "のファイル"; } catch(e) {} return _t; } catch(e) { return "-"; } })();
+        updateStorageInfo();
         
     };
 
@@ -694,6 +695,7 @@
         const t = document.getElementById('settings-title'); if(t) t.innerText = page === 'import' ? 'データ取り込み' : '設定';
     }
     function openSettings() {
+        updateStorageInfo();
         showSettingsPage('settings');
         const modal = document.getElementById('settingsModal');
         const repList = document.getElementById('rep-checklist');
@@ -958,6 +960,7 @@
         let text = new TextDecoder('utf-8').decode(buf);
         if(text.includes('\uFFFD')) text = new TextDecoder('shift-jis').decode(buf);
         window._importFileText = text.replace(/^\uFEFF/, "");
+        window._importFileMeta = f.lastModified ? (() => { const d = new Date(f.lastModified); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })() : "";
         document.getElementById('csv-file-name').innerText = f.name;
     }
 
@@ -972,6 +975,8 @@
             const dataRows = allRows.slice(1);
             const objs = dataRows.filter(r => r.join("").trim() !== "").map(r => rowToObj(r, idx, ""));
             const res = await upsertRows(objs);
+            if(window._importFileMeta) localStorage.setItem('map_data_info', JSON.stringify({ count: db.length, fileDate: window._importFileMeta }));
+            updateStorageInfo();
             window._importFileText = null;
             const fnEl = document.getElementById('csv-file-name'); if(fnEl) fnEl.innerText = "";
             saveDB(); populateFilters(); resetAndRender();
@@ -1435,7 +1440,7 @@
         const a = document.createElement('a');
         a.href = url; a.download = `notes-${_ymd}.txt`; a.click();
     }
-    function uploadData(i) { const f=i.files[0]; i.value=""; if(!f)return; const _fd = f.lastModified ? new Date(f.lastModified) : null; const _fds = _fd ? `${_fd.getFullYear()}-${String(_fd.getMonth()+1).padStart(2,'0')}-${String(_fd.getDate()).padStart(2,'0')}` : ""; const r=new FileReader(); r.onload=e=>{ try { const incoming = JSON.parse(e.target.result); if(!Array.isArray(incoming)) { alert("読み込み失敗"); return; } if(confirm(`JSONファイルを読み込みますか？\nデータ ${incoming.length.toLocaleString()} 件${_fds ? `／ファイル日付 ${_fds}` : ""}`)) { localStorage.setItem('map_data_info', JSON.stringify({ count: incoming.length, fileDate: _fds })); const noteByCode = {}; db.forEach(d => { if(d.r_code && (d.note || "").trim()) noteByCode[d.r_code] = d.note; }); let kept = 0; incoming.forEach(d => { if(d.r_code && !(d.note || "").trim() && noteByCode[d.r_code]) { d.note = noteByCode[d.r_code]; kept++; } }); db = incoming; saveDB(); populateFilters(); resetAndRender(); alert(`読み込み完了（メモ ${kept} 件を引き継ぎました）`); } } catch(z) { alert("読み込み失敗"); } }; r.readAsText(f); }
+    function uploadData(i) { const f=i.files[0]; i.value=""; if(!f)return; const _fd = f.lastModified ? new Date(f.lastModified) : null; const _fds = _fd ? `${_fd.getFullYear()}-${String(_fd.getMonth()+1).padStart(2,'0')}-${String(_fd.getDate()).padStart(2,'0')}` : ""; const r=new FileReader(); r.onload=e=>{ try { const incoming = JSON.parse(e.target.result); if(!Array.isArray(incoming)) { alert("読み込み失敗"); return; } if(confirm(`JSONファイルを読み込みますか？\nデータ ${incoming.length.toLocaleString()} 件${_fds ? `／ファイル日付 ${_fds}` : ""}`)) { localStorage.setItem('map_data_info', JSON.stringify({ count: incoming.length, fileDate: _fds })); const noteByCode = {}; db.forEach(d => { if(d.r_code && (d.note || "").trim()) noteByCode[d.r_code] = d.note; }); let kept = 0; incoming.forEach(d => { if(d.r_code && !(d.note || "").trim() && noteByCode[d.r_code]) { d.note = noteByCode[d.r_code]; kept++; } }); db = incoming; saveDB(); populateFilters(); resetAndRender(); updateStorageInfo(); alert(`読み込み完了（メモ ${kept} 件を引き継ぎました）`); } } catch(z) { alert("読み込み失敗"); } }; r.readAsText(f); }
     function saveDB() { localStorage.setItem(DB_NAME, JSON.stringify(db)); }
 
     // カルーセルの終端が近づいたら次のカードを自動で足す
