@@ -22,9 +22,9 @@
             --dark: #1f3a5f;
             --alert: #c62828;
             --border: #e4e1d9;
-            --shadow: 0 6px 22px rgba(21,42,71,0.13);
+            --shadow: 0 4px 18px rgba(31,58,95,0.09);
             --radius: 14px;
-            --glass: rgba(255,255,255,0.93);
+            --glass: #ffffff;
             --font-serif: -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
             --font-eng: -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
         }
@@ -56,7 +56,7 @@
             display: flex; align-items: center; background: var(--glass);
             backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
             border-radius: 999px; padding: 2px 6px 2px 16px;
-            box-shadow: var(--shadow); border: 1px solid rgba(255,255,255,0.7);
+            box-shadow: var(--shadow); border: 1px solid var(--border);
         }
         .place-search-box { flex: 1; }
         .search-input-style {
@@ -83,8 +83,8 @@
 
         /* パネル（ヘッダー〜統計までを1枚のカードに） */
         .panel {
-            background: var(--glass); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-            border: 1px solid rgba(255,255,255,0.7); border-radius: 18px; box-shadow: var(--shadow);
+            background: #fff;
+            border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--shadow);
             padding-bottom: 13px;
         }
         @media (min-width: 900px) { .panel { width: 440px; } }
@@ -132,7 +132,7 @@
             padding: 0 18px; min-height: 44px; font-size: 0.85rem; font-weight: 700; cursor: pointer;
         }
         .list-search-box input {
-            flex: 1; border: 1px solid var(--border) !important; background: #f7f6f2 !important;
+            flex: 1; border: 1px solid var(--border) !important; background: #f2f7fb !important;
             border-radius: 999px !important; padding: 10px 16px !important; font-size: 0.92rem;
             box-shadow: none !important; font-family: var(--font-serif); min-width: 0; width: auto;
         }
@@ -144,7 +144,7 @@
         .counts-row .l { font-size: 10.5px; color: var(--text-sub); font-weight: 600; margin-left: 5px; }
         .counts-row .mine .n { color: var(--gold-dark); }
         .counts-row .others .n { color: var(--navy); }
-        .sync-float { align-self: flex-end; margin-top: 8px; background: var(--glass); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.7); border-radius: 999px; box-shadow: var(--shadow); padding: 6px 12px; display: flex; align-items: center; gap: 7px; font-size: 0.78rem; font-weight: 700; color: var(--navy-dark); }
+        .sync-float { align-self: flex-end; margin-top: 8px; background: #fff; border: 1px solid var(--border); border-radius: 999px; box-shadow: var(--shadow); padding: 6px 12px; display: flex; align-items: center; gap: 7px; font-size: 0.78rem; font-weight: 700; color: var(--navy-dark); }
         #stats-area { padding: 10px 14px 0; margin: 0; background: transparent; box-shadow: none; }
         .stats-header { display: none; }
         #display-count-text { display: none; }
@@ -157,8 +157,8 @@
         .stats-grid::-webkit-scrollbar { display: none; }
         .stats-item {
             flex: none; white-space: nowrap;
-            font-size: 0.78rem; font-weight: 600; padding: 7px 12px; background: #f4f5f7;
-            border-radius: 999px; cursor: pointer; border: 1px solid #eceae4;
+            font-size: 0.78rem; font-weight: 600; padding: 7px 12px; background: #edf5fc;
+            border-radius: 999px; cursor: pointer; border: 1px solid #dbe4ec;
             transition: all 0.2s; color: var(--text-sub);
         }
         .stats-item.selected { background: var(--navy); color: #fff; border-color: var(--navy); }
@@ -167,22 +167,22 @@
         /* 結果：下部の横カルーセル */
         #result-area {
             margin-top: auto; display: flex; gap: 10px; overflow-x: auto;
-            scroll-snap-type: x mandatory; padding: 6px 2px 4px; align-items: flex-start;
+            scroll-snap-type: x mandatory; padding: 6px 2px 4px; align-items: flex-start; overflow-y: hidden; touch-action: pan-x; overscroll-behavior: contain;
             scrollbar-width: none;
         }
         #result-area::-webkit-scrollbar { display: none; }
         .customer-item {
             flex: 0 0 82%; max-width: 430px; scroll-snap-align: center;
             background: var(--card); padding: 14px 15px; border-radius: 16px;
-            box-shadow: var(--shadow); border: 1px solid rgba(0,0,0,0.02);
+            box-shadow: 0 2px 10px rgba(31,58,95,0.06); border: 1px solid #e3ebf2;
             margin: 0;
             display: flex; flex-direction: column;
         }
         @media (min-width: 900px) { .customer-item { flex-basis: 380px; } }
         .btn-load-more {
             align-self: center; width: auto; padding: 9px 26px; min-height: 42px;
-            background: var(--glass); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-            border: 1px solid var(--navy); color: var(--navy);
+            background: #fff;
+            border: 1.5px solid #c3d4e2; color: var(--navy);
             border-radius: 999px; font-weight: 700; margin-top: 8px; cursor: pointer;
             font-family: var(--font-serif); font-size: 0.85rem;
         }
@@ -192,7 +192,7 @@
         }
         .action-btn {
             flex: 1; padding: 9px 0; min-height: 42px; border-radius: 10px;
-            background: #fbfbf9; border: 1px solid #eceae4;
+            background: #fbfbf9; border: 1px solid #dbe4ec;
             display: flex; align-items: center; justify-content: center; gap: 6px;
             text-decoration: none; font-size: 0.8rem; font-weight: 700; color: var(--navy-dark);
             cursor: pointer; font-family: var(--font-serif);
@@ -216,17 +216,17 @@
         }
         .tag {
             background: #f2f2f0; padding: 2px 8px; border-radius: 5px;
-            font-size: 0.7rem; color: #666; letter-spacing: 0.03em; border: 1px solid #eceae4;
+            font-size: 0.7rem; color: #666; letter-spacing: 0.03em; border: 1px solid #dbe4ec;
         }
-        .tag-id { background: var(--gold-light); color: #7c5a14; border-color: #efdfae; font-weight: 700; }
+        .tag-id { background: #edf5fc; color: #3868a8; border-color: #d4e5f5; font-weight: 700; }
         .btn-copy {
             font-size: 0.65rem; font-weight: 700; background: transparent; border: 1px solid #ddd;
             padding: 3px 8px; border-radius: 999px; cursor: pointer; color: #999;
             margin-left: 8px; min-height: 26px;
         }
         .note-box {
-            font-size: 0.78rem; color: #6d5a22; margin-top: 7px;
-            background: #fdf8e7; border: 1px solid #f0e3b2; padding: 6px 10px; border-radius: 8px; display: inline-block;
+            font-size: 0.78rem; color: #47617a; margin-top: 7px;
+            background: #f2f7fb; border: 1px solid #dbe9f5; padding: 6px 10px; border-radius: 8px; display: inline-block;
         }
 
         /* 地図上のボタン類 */
@@ -249,7 +249,7 @@
         }
         .toggle-switch { position: relative; display: inline-block; width: 38px; height: 22px; }
         .toggle-switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #d4d7dd; transition: .3s; border-radius: 22px; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccd8e2; transition: .3s; border-radius: 22px; }
         .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 2px; bottom: 2px; background-color: white; transition: .3s; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.25); }
         input:checked + .slider { background-color: var(--navy); }
         input:checked + .slider:before { transform: translateX(16px); }
@@ -264,7 +264,7 @@
 
         /* モーダル */
         .mode-switch {
-            display: flex; gap: 15px; margin-bottom: 15px; background: #f7f6f2; padding: 12px; border-radius: 12px; border: 1px solid #eee;
+            display: flex; gap: 15px; margin-bottom: 15px; background: #f2f7fb; padding: 12px; border-radius: 12px; border: 1px solid #eee;
         }
         .mode-label {
             display: flex; align-items: center; font-size: 0.82rem; font-weight: 600; cursor: pointer;
@@ -302,11 +302,11 @@
 
         .quick-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
         .chip {
-            font-size: 0.78rem; font-weight: 600; background: #fdf8ec; padding: 8px 14px; border-radius: 999px;
-            cursor: pointer; border: 1px solid #e7c878; color: #92600f;
+            font-size: 0.78rem; font-weight: 600; background: #edf5fc; padding: 8px 14px; border-radius: 999px;
+            cursor: pointer; border: 1px solid #c9def2; color: #2f5b8f;
         }
-        .chip:active { background: var(--gold); color: white; }
-        .chip-del { color: #cbb27a; font-weight: bold; margin-left: 8px; cursor: pointer; }
+        .chip:active { background: var(--navy); color: white; }
+        .chip-del { color: #9db8cf; font-weight: bold; margin-left: 8px; cursor: pointer; }
         .chip-del:hover { color: #d32f2f; }
 
         .modal-overlay {
@@ -339,7 +339,7 @@
         .info-window-card { margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
         .info-window-card:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
         .info-title { font-weight: 800; font-size: 1.0rem; margin-bottom: 4px; line-height: 1.3; color: var(--navy-dark); }
-        .info-meta { font-size: 0.75rem; color: #777; margin-bottom: 6px; background: #f4f5f7; padding: 2px 6px; border-radius: 4px; display: inline-block;}
+        .info-meta { font-size: 0.75rem; color: #777; margin-bottom: 6px; background: #edf5fc; padding: 2px 6px; border-radius: 4px; display: inline-block;}
         .info-tel { font-weight: 700; color: var(--navy); font-size: 0.9rem; text-decoration: none; margin-bottom: 4px; display: block; }
         .info-addr { font-size: 0.75rem; color: #666; margin-bottom: 6px; line-height: 1.4;}
         .info-actions { display: flex; gap: 8px; margin-top: 10px; }
@@ -904,7 +904,7 @@
             pinView.style.width = (isHit || isHighlighted) ? "30px" : "24px";
             pinView.style.height = pinView.style.width;
             
-            let bgColor = "#1f3a5f";
+            let bgColor = "#3868a8";
             if(isHighlighted) bgColor = "#FFD60A";
             else if(isHit) bgColor = "#FFD60A";
             else if(isMe) bgColor = "#d9a94a";
@@ -1027,7 +1027,7 @@
 
         displayTargets.forEach(c => {
             const isMe = targetReps.includes(c.rep_name);
-            const color = isMe ? "#d9a94a" : "#1f3a5f"; 
+            const color = isMe ? "#d9a94a" : "#3868a8"; 
             
             const buildHtml = c.building ? `<div class="info-sub">${c.building}</div>` : "";
             
