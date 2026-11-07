@@ -394,6 +394,11 @@
         .info-main .status-dot { margin-top: 5px; flex: none; }
         .info-company { font-size: 0.72rem; color: #5f768c; margin-top: 1px; }
         .customer-item { height: 250px; }
+    
+        .header-area .limit-select { width: auto; height: 36px; min-height: 36px; font-size: 0.78rem; padding: 0 2px 0 10px; border-radius: 10px; border: 1px solid var(--border); background: #fff; color: var(--navy-dark); font-weight: 600; margin-left: auto; }
+        .hbtn:first-of-type { margin-left: 0; }
+        #result-area { margin-top: auto; }
+        .customer-item.highlighted { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold-light), 0 2px 10px rgba(31,58,95,0.08); }
     </style>
 </head>
 <body>
@@ -411,19 +416,14 @@
         <div class="panel">
         <div class="header-area">
             <h1>顧客マップ</h1>
-            <button class="hbtn" onclick="openImport()" title="データ取り込み"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v10m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2"/></svg></button>
-            <button class="hbtn" onclick="openSettings()" title="設定"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><circle cx="9" cy="7" r="2.2" fill="#fff"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="15" cy="12" r="2.2" fill="#fff"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="7" cy="17" r="2.2" fill="#fff"/></svg></button>
-        </div>
-
-        <div class="filter-area">
-            <select id="prefFilter" onchange="onPrefChange()"><option value="ALL">都道府県: すべて</option></select>
-            <select id="stationFilter" onchange="resetAndRender()"><option value="ALL">駅名: すべて</option></select>
             <select id="limitSelect" class="limit-select" onchange="changeLimit()">
                     <option value="100">表示: 100件</option>
                     <option value="300">表示: 300件</option>
                     <option value="500">表示: 500件</option>
                     <option value="ALL">表示: 全件</option>
                 </select>
+            <button class="hbtn" onclick="openImport()" title="データ取り込み"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v10m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2"/></svg></button>
+            <button class="hbtn" onclick="openSettings()" title="設定"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><circle cx="9" cy="7" r="2.2" fill="#fff"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="15" cy="12" r="2.2" fill="#fff"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="7" cy="17" r="2.2" fill="#fff"/></svg></button>
         </div>
         
         <div class="list-search-box search-box-style">
@@ -446,7 +446,6 @@
                 <svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7-7 7z"/></svg>
             </button>
         <div id="result-area"></div>
-        <button id="load-more-btn" class="btn-load-more" onclick="loadMore()" style="display:none;">もっと見る</button>
 
         <div style="height:80px;"></div>
     </div>
@@ -939,8 +938,8 @@
         
         let pinsToShow = displayTargets;
         if (mapSyncMode && map) {
-            const fPref = document.getElementById('prefFilter').value;
-            const fSt = document.getElementById('stationFilter').value;
+            const fPref = "ALL";
+            const fSt = "ALL";
             const mapBaseData = db.filter(d => {
                 if(fPref !== "ALL" && getPrefecture(d.address) !== fPref) return false;
                 if(fSt !== "ALL" && (d.station||"") !== fSt) return false; 
@@ -997,6 +996,13 @@
                 });
                 html += '</div>';
                 infoWindow.setContent(html); infoWindow.open(map, m);
+                const firstC = group[0];
+                if(firstC) {
+                    highlightedId = firstC.id;
+                    document.querySelectorAll('.customer-item.highlighted').forEach(el => el.classList.remove('highlighted'));
+                    const cardEl = document.querySelector('.customer-item[data-id="' + firstC.id + '"]');
+                    if(cardEl) { cardEl.classList.add('highlighted'); setTimeout(() => cardEl.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' }), 60); }
+                }
             });
             markers.push(m); bounds.extend(m.position); hasPin = true;
         });
@@ -1005,10 +1011,7 @@
 
     function getPrefecture(a) { const m=a.match(/(...??[都道府県])/); return m?m[1]:"その他"; }
     
-    function populateFilters() {
-        populatePrefFilter();
-        populateStationFilter();
-    }
+    function populateFilters() {}
 
     function populatePrefFilter() {
         const pSel=document.getElementById('prefFilter');
@@ -1068,8 +1071,8 @@
 
     function render() {
         const area = document.getElementById('result-area'); area.innerHTML = "";
-        const fPref = document.getElementById('prefFilter').value;
-        const fSt = document.getElementById('stationFilter').value; 
+        const fPref = "ALL";
+        const fSt = "ALL"; 
         const q = normalize(document.getElementById('searchInput').value);
 
         let filtered = db.filter(d => {
@@ -1106,9 +1109,9 @@
             targets.forEach(d => { d._nd = (d.lat && d.lng) ? google.maps.geometry.spherical.computeDistanceBetween(_pt, new google.maps.LatLng(d.lat, d.lng)) : 1e12; });
             targets.sort((a, b) => a._nd - b._nd);
         }
-        const displayTargets = targets.slice(0, currentLimit);
-        window._lastDisplay = displayTargets;
-        updateMapPins(displayTargets);
+        const displayTargets = targets;
+        window._lastDisplay = targets.slice(0, currentLimit);
+        updateMapPins(window._lastDisplay);
 
         displayTargets.forEach(c => {
             const isMe = targetReps.includes(c.rep_name);
@@ -1120,7 +1123,7 @@
             const np = splitName(c);
             
             const div = document.createElement('div');
-            div.className = 'customer-item'; div.dataset.id = c.id;
+            div.className = 'customer-item'; div.dataset.id = c.id; if(c.id === highlightedId) div.classList.add('highlighted');
             
             div.innerHTML = `<div style="flex:1;">
                 <div class="info-main">
@@ -1155,8 +1158,6 @@
             </div>`;
             area.appendChild(div);
         });
-        const btnArea = document.getElementById('load-more-btn');
-        btnArea.style.display = (targets.length > currentLimit && document.getElementById('limitSelect').value !== 'ALL') ? 'block' : 'none';
     }
 
     function panToMap(id, lat, lng) { 
@@ -1268,7 +1269,7 @@
         area.addEventListener('scroll', () => {
             clearTimeout(timer);
             timer = setTimeout(() => {
-                if(!map || area.scrollLeft < 4) return;
+                if(!map || mapSyncMode || area.scrollLeft < 4) return;
                 const cards = area.querySelectorAll('.customer-item');
                 if(!cards.length) return;
                 const areaLeft = area.getBoundingClientRect().left;
@@ -1281,7 +1282,7 @@
                 highlightedId = c.id;
                 map.panTo({ lat: c.lat, lng: c.lng });
                 if(window._lastDisplay) updateMapPins(window._lastDisplay);
-            }, 160);
+            }, 320);
         }, { passive: true });
     })();
 </script>
