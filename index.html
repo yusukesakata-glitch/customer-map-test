@@ -413,6 +413,14 @@
         .customer-item { height: auto; }
         #result-area { align-items: flex-end; }
         .customer-item .action-area { margin-top: 10px; }
+    
+        .card-meta { display: flex; align-items: center; gap: 7px; font-size: 0.76rem; color: var(--text-sub); margin-top: 5px; white-space: nowrap; overflow: hidden; }
+        .meta-code { color: #3868a8; font-weight: 700; }
+        .meta-sep { width: 3px; height: 3px; border-radius: 50%; background: #c3d4e2; flex: none; }
+        .card-tel { display: flex; align-items: center; gap: 9px; margin-top: 6px; font-size: 0.87rem; font-weight: 600; color: var(--navy-dark); }
+        .btn-copy { font-size: 0.66rem; padding: 2px 8px; }
+        .card-addr { font-size: 0.78rem; color: var(--text-sub); margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.35; }
+        .cluster-bubble { width: 36px; height: 36px; border-radius: 50%; border: 2.5px solid #fff; box-shadow: 0 2px 6px rgba(21,42,70,0.3); color: #fff; font-weight: 800; font-size: 0.8rem; display: grid; place-items: center; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -979,33 +987,72 @@
             }
         });
 
+        const pinItems = [];
         Object.keys(grouped).forEach(key => {
             const group = grouped[key];
             const first = group[0];
-            let isMe = group.some(c => targetReps.includes(c.rep_name));
-            let isHit = group.some(c => hasSearch && normalize(c.name + c.r_code + c.address).includes(searchInput));
-            
-            let isHighlighted = group.some(c => c.id === highlightedId);
-            
+            pinItems.push({ key, group, first, lat: first.lat, lng: first.lng,
+                isMe: group.some(c => targetReps.includes(c.rep_name)),
+                isHit: group.some(c => hasSearch && normalize(c.name + c.r_code + c.address).includes(searchInput)),
+                isHighlighted: group.some(c => c.id === highlightedId) });
+        });
+
+        let renderItems = pinItems;
+        const _zoom = map.getZoom() || 13;
+        if(_zoom < 15) {
+            const proj = map.getProjection();
+            if(proj) {
+                const scale = Math.pow(2, _zoom);
+                const clusters = [], singles = [];
+                pinItems.forEach(it => {
+                    if(it.isHit || it.isHighlighted) { singles.push(it); return; }
+                    const pt = proj.fromLatLngToPoint(new google.maps.LatLng(it.lat, it.lng));
+                    const x = pt.x * scale, y = pt.y * scale;
+                    let found = null;
+                    for(const cl of clusters) { const dx = cl.x - x, dy = cl.y - y; if(dx * dx + dy * dy < 56 * 56) { found = cl; break; } }
+                    if(found) found.items.push(it); else clusters.push({ x, y, items: [it] });
+                });
+                renderItems = singles.slice();
+                clusters.forEach(cl => {
+                    if(cl.items.length === 1) renderItems.push(cl.items[0]);
+                    else renderItems.push({ cluster: true, items: cl.items, count: cl.items.reduce((a, i) => a + i.group.length, 0), lat: cl.items.reduce((a, i) => a + i.lat, 0) / cl.items.length, lng: cl.items.reduce((a, i) => a + i.lng, 0) / cl.items.length, isMe: cl.items.some(i => i.isMe) });
+                });
+            }
+        }
+
+        renderItems.forEach(it => {
+            if(it.cluster) {
+                const v = document.createElement("div");
+                v.className = "cluster-bubble";
+                if(it.count >= 100) v.style.fontSize = "0.66rem";
+                v.innerText = it.count;
+                v.style.backgroundColor = it.isMe ? "#d9a94a" : "#3868a8";
+                const cm = new AdvancedMarkerElement({ position: {lat: it.lat, lng: it.lng}, map: map, content: v, zIndex: 500 });
+                cm.addListener("click", () => { window._syncSuppressUntil = Date.now() + 900; map.panTo({lat: it.lat, lng: it.lng}); map.setZoom(Math.min((map.getZoom() || 13) + 2, 17)); });
+                markers.push(cm); bounds.extend(cm.position); hasPin = true;
+                return;
+            }
+            const key = it.key, group = it.group, first = it.first;
+            const isMe = it.isMe, isHit = it.isHit, isHighlighted = it.isHighlighted;
             const pinView = document.createElement("div");
             pinView.style.width = (isHit || isHighlighted) ? "30px" : "24px";
             pinView.style.height = pinView.style.width;
-            
             let bgColor = "#3868a8";
             if(isHighlighted) bgColor = "#FFD60A";
             else if(isHit) bgColor = "#FFD60A";
             else if(isMe) bgColor = "#d9a94a";
-            
-            pinView.style.backgroundColor = bgColor; 
+            pinView.style.backgroundColor = bgColor;
             pinView.style.borderRadius = "50% 50% 50% 0"; pinView.style.transform = "rotate(-45deg)"; pinView.style.border = "2.5px solid white"; pinView.style.boxShadow = "0 2px 5px rgba(0,0,0,0.2)";
-
             const m = new AdvancedMarkerElement({ position: {lat:first.lat, lng:first.lng}, map: map, content: pinView, zIndex: (isHit || isHighlighted) ? 1000 : (isMe ? 100 : 1) });
-            
             m.addListener("click", () => {
                 isPinClick = true;
-                const firstC = group[0];
+                let idx = 0;
+                if(window._cycleKey === key && group.length > 1) { const cur = group.findIndex(c => c.id === highlightedId); if(cur >= 0) idx = (cur + 1) % group.length; }
+                window._cycleKey = key;
+                const firstC = group[idx];
                 if(!firstC) return;
                 highlightedId = firstC.id;
+                window._pinsNoFit = true;
                 if(window._lastDisplay) updateMapPins(window._lastDisplay);
                 const area = document.getElementById('result-area');
                 let cardEl = area.querySelector('.customer-item[data-id="' + firstC.id + '"]');
@@ -1019,7 +1066,8 @@
             });
             markers.push(m); bounds.extend(m.position); hasPin = true;
         });
-        if(hasPin && !mapSyncMode && !watchId) map.fitBounds(bounds);
+        if(hasPin && !mapSyncMode && !watchId && !window._pinsNoFit) map.fitBounds(bounds);
+        window._pinsNoFit = false;
     }
 
     function getPrefecture(a) { const m=a.match(/(...??[都道府県])/); return m?m[1]:"その他"; }
@@ -1069,14 +1117,15 @@
 
     function toggleMapSync() { mapSyncMode = document.getElementById('mapSyncToggle').checked; if(mapSyncMode) resetAndRender(); }
     function splitName(c) {
-        if(c.company || c.shop) return { company: c.company || "", shop: c.shop || "" };
+        const hw = (t) => (t || "").replace(/[Ａ-Ｚａ-ｚ０-９]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0));
+        if(c.company || c.shop) return { company: hw(c.company || ""), shop: hw(c.shop || "") };
         const n = (c.name || "").trim();
         const idx = n.search(/[ \u3000]/);
         if(idx > 0) {
             const head = n.slice(0, idx), rest = n.slice(idx).trim();
-            if(/(株式会社|有限会社|合同会社|合資会社|合名会社|医療法人|社会福祉法人|一般社団法人|公益社団法人|学校法人|NPO法人|（株）|\(株\))/.test(head)) return { company: head, shop: rest };
+            if(/(株式会社|有限会社|合同会社|合資会社|合名会社|医療法人|社会福祉法人|一般社団法人|公益社団法人|学校法人|NPO法人|（株）|\(株\))/.test(head)) return { company: hw(head), shop: hw(rest) };
         }
-        return { company: "", shop: n };
+        return { company: "", shop: hw(n) };
     }
     function resetAndRender() { render(); }
     function changeLimit() { currentLimit = document.getElementById('limitSelect').value === 'ALL' ? db.length : parseInt(document.getElementById('limitSelect').value); render(); }
@@ -1144,15 +1193,9 @@
                     <span class="name-lines">${np.company ? `<span class="company-name">${np.company}</span>` : ""}<span class="shop-name">${np.shop}</span></span>
                     ${creditHtml}
                 </div>
-                <div class="info-sub">
-                    <span class="tag tag-id">${c.r_code||"-"}</span>${c.rep_name||""}
-                    ${c.station ? `<span class="tag" style="background:#f4f4f4; border:1px solid #ddd; margin-left:8px;">${c.station}</span>` : ""}
-                </div>
-                <div class="info-sub">
-                    ${c.tel||""} <button class="btn-copy" onclick="copyToClipboard('${c.tel}')">COPY</button>
-                </div>
-                <div class="info-sub">${c.address}</div>
-                ${buildHtml}
+                <div class="card-meta"><span class="meta-code">${c.r_code||"-"}</span>${c.rep_name ? `<span class="meta-sep"></span><span>${c.rep_name}</span>` : ""}${c.station ? `<span class="meta-sep"></span><span>${c.station}</span>` : ""}</div>
+                ${c.tel ? `<div class="card-tel"><span>${c.tel}</span><button class="btn-copy" onclick="copyToClipboard('${c.tel}')">COPY</button></div>` : ""}
+                <div class="card-addr">${c.address}${c.building ? ` ${c.building}` : ""}</div>
                 ${c.note ? `<div class="note-box">${c.note}</div>` : ""}
             </div>
             <div class="action-area">
@@ -1305,7 +1348,7 @@
                 highlightedId = c.id;
                 document.querySelectorAll('.customer-item.highlighted').forEach(el => el.classList.remove('highlighted'));
                 best.classList.add('highlighted');
-                if(window._lastDisplay) updateMapPins(window._lastDisplay);
+                if(window._lastDisplay) { window._pinsNoFit = true; updateMapPins(window._lastDisplay); }
                 if(map && c.lat && c.lng) { window._syncSuppressUntil = Date.now() + 900; map.panTo({ lat: c.lat, lng: c.lng }); }
             }, 220);
         }, { passive: true });
