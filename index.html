@@ -1006,13 +1006,13 @@
             const key = it.key, group = it.group, first = it.first;
             const isMe = it.isMe, isHit = it.isHit, isHighlighted = it.isHighlighted;
             const pinView = document.createElement("div");
-            pinView.style.width = isHighlighted ? "32px" : (isHit ? "28px" : "24px");
+            pinView.style.width = isHighlighted ? "32px" : "24px";
             pinView.style.height = pinView.style.width;
             let bgColor = isMe ? "#d9a94a" : "#3868a8";
             if(isHighlighted) bgColor = "#FFD60A";
             pinView.style.backgroundColor = bgColor;
-            pinView.style.borderRadius = "50% 50% 50% 0"; pinView.style.transform = "rotate(-45deg)"; pinView.style.border = "2.5px solid white"; pinView.style.boxShadow = (isHit && !isHighlighted) ? "0 0 0 3px rgba(255,214,10,0.55), 0 2px 5px rgba(0,0,0,0.2)" : "0 2px 5px rgba(0,0,0,0.2)";
-            const m = new AdvancedMarkerElement({ position: {lat:first.lat, lng:first.lng}, map: map, content: pinView, zIndex: isHighlighted ? 1000 : (isHit ? 500 : (isMe ? 100 : 1)) });
+            pinView.style.borderRadius = "50% 50% 50% 0"; pinView.style.transform = "rotate(-45deg)"; pinView.style.border = "2.5px solid white"; pinView.style.boxShadow = "0 2px 5px rgba(0,0,0,0.2)";
+            const m = new AdvancedMarkerElement({ position: {lat:first.lat, lng:first.lng}, map: map, content: pinView, zIndex: isHighlighted ? 1000 : (isMe ? 100 : 1) });
             m.addListener("click", () => {
                 isPinClick = true;
                 let idx = 0;
