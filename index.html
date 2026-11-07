@@ -810,7 +810,7 @@
                 const { AdvancedMarkerElement: AM } = await google.maps.importLibrary("marker");
                 geocoder = new Geocoder(); AdvancedMarkerElement = AM;
                 const div = document.getElementById('google-map-view');
-                map = new Map(div, { center:{lat:35.68, lng:139.76}, zoom:13, mapId: "DEMO_MAP_ID", mapTypeControl: false, streetViewControl: false });
+                map = new Map(div, { center:{lat:35.68, lng:139.76}, zoom:13, mapId: "DEMO_MAP_ID", mapTypeControl: false, streetViewControl: false, gestureHandling: "greedy" });
                 infoWindow = new google.maps.InfoWindow();
                 map.addListener('idle', () => { const wasPin = isPinClick; isPinClick = false; if(!mapSyncMode || wasPin) return; const wait = (window._syncSuppressUntil || 0) - Date.now(); clearTimeout(window._idleTimer); window._idleTimer = setTimeout(() => { if(mapSyncMode) resetAndRender(); }, wait > 0 ? wait + 250 : 250); });
                 map.addListener('dragstart', () => { if(watchId) { isTrackingLocked=false; nearbySort=null; updateGpsBtnState(); } });
