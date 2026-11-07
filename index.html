@@ -1000,41 +1000,9 @@
                 isHighlighted: group.some(c => c.id === highlightedId) });
         });
 
-        let renderItems = pinItems;
-        const _zoom = map.getZoom() || 13;
-        if(_zoom < 15) {
-            const proj = map.getProjection();
-            if(proj) {
-                const scale = Math.pow(2, _zoom);
-                const clusters = [], singles = [];
-                pinItems.forEach(it => {
-                    if(it.isHit || it.isHighlighted) { singles.push(it); return; }
-                    const pt = proj.fromLatLngToPoint(new google.maps.LatLng(it.lat, it.lng));
-                    const x = pt.x * scale, y = pt.y * scale;
-                    let found = null;
-                    for(const cl of clusters) { const dx = cl.x - x, dy = cl.y - y; if(dx * dx + dy * dy < 56 * 56) { found = cl; break; } }
-                    if(found) found.items.push(it); else clusters.push({ x, y, items: [it] });
-                });
-                renderItems = singles.slice();
-                clusters.forEach(cl => {
-                    if(cl.items.length === 1) renderItems.push(cl.items[0]);
-                    else renderItems.push({ cluster: true, items: cl.items, count: cl.items.reduce((a, i) => a + i.group.length, 0), lat: cl.items.reduce((a, i) => a + i.lat, 0) / cl.items.length, lng: cl.items.reduce((a, i) => a + i.lng, 0) / cl.items.length, isMe: cl.items.some(i => i.isMe) });
-                });
-            }
-        }
+        const renderItems = pinItems;
 
         renderItems.forEach(it => {
-            if(it.cluster) {
-                const v = document.createElement("div");
-                v.className = "cluster-bubble";
-                if(it.count >= 100) v.style.fontSize = "0.66rem";
-                v.innerText = it.count;
-                v.style.backgroundColor = it.isMe ? "#d9a94a" : "#3868a8";
-                const cm = new AdvancedMarkerElement({ position: {lat: it.lat, lng: it.lng}, map: map, content: v, zIndex: 500 });
-                cm.addListener("click", () => { window._syncSuppressUntil = Date.now() + 900; releaseFollow(); map.panTo({lat: it.lat, lng: it.lng}); map.setZoom(Math.min((map.getZoom() || 13) + 2, 17)); });
-                markers.push(cm); bounds.extend(cm.position); hasPin = true;
-                return;
-            }
             const key = it.key, group = it.group, first = it.first;
             const isMe = it.isMe, isHit = it.isHit, isHighlighted = it.isHighlighted;
             const pinView = document.createElement("div");
