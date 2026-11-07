@@ -405,6 +405,7 @@
         .customer-item .info-sub { margin-top: 3px; line-height: 1.3; }
         .customer-item .action-btn { min-height: 44px; }
         .action-btn.visit-done { background: #fdf6e3; border-color: #d9a94a; color: #8a6d1f; }
+        .action-btn.visit-btn { font-size: 0.74rem; letter-spacing: -0.02em; }
         .unvisited-toggle { align-self: center; flex: none; padding: 6px 12px; border-radius: 999px; border: 1px solid #d8e2ec; background: #fff; color: #536b7d; font-size: 0.75rem; font-weight: 700; cursor: pointer; font-family: inherit; }
         .unvisited-toggle.on { background: #25475f; border-color: #25475f; color: #fff; }
     
@@ -1264,7 +1265,7 @@
                 </a>` : ""}
                 <a href="https://www.google.com/maps/dir/?api=1&destination=${(c.lat && c.lng) ? (c.lat + ',' + c.lng) : encodeURIComponent(c.address + (c.building ? ' ' + c.building : ''))}" target="_blank" rel="noopener" class="action-btn">経路
                 </a>
-                <button onclick="visitShop('${c.id}', this)" class="action-btn${(c.note || "").includes(todayStamp() + "訪問") ? ' visit-done' : ''}">${(c.note || "").includes(todayStamp() + "訪問") ? '訪問済' : '訪問'}</button>
+                <button onclick="visitShop('${c.id}', this)" class="action-btn visit-btn${(c.note || "").includes(todayStamp() + "訪問") ? ' visit-done' : ''}">${(c.note || "").includes(todayStamp() + "訪問") ? '訪問済' : '訪問した'}</button>
                 <button onclick="panToMap('${c.id}', ${c.lat},${c.lng})" class="action-btn">地図
                 </button>
             </div>`;
@@ -1364,10 +1365,24 @@
             }
         }
 
-        saveDB(); 
+        saveDB();
         populateFilters();
-        render(); 
-        closeModal(); 
+        render();
+        closeModal();
+        focusCard(id);
+    }
+
+    function focusCard(id) {
+        highlightedId = id;
+        const area = document.getElementById('result-area');
+        if(!area) return;
+        let el = area.querySelector('.customer-item[data-id="' + id + '"]');
+        for(let i = 0; i < 40 && !el && window._appendCards; i++) { const before = area.querySelectorAll('.customer-item').length; window._appendCards(); if(area.querySelectorAll('.customer-item').length === before) break; el = area.querySelector('.customer-item[data-id="' + id + '"]'); }
+        if(!el) return;
+        document.querySelectorAll('.customer-item.highlighted').forEach(x => x.classList.remove('highlighted'));
+        el.classList.add('highlighted');
+        const delta = el.getBoundingClientRect().left - area.getBoundingClientRect().left;
+        area.scrollTo({ left: area.scrollLeft + delta - 10, behavior: 'auto' });
     }
 
     function deleteCustomer() { if(confirm("このデータを削除しますか？")) { db = db.filter(x => x.id !== document.getElementById('edit-id').value); saveDB(); render(); closeModal(); } }
