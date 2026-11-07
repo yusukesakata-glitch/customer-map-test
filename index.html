@@ -1179,7 +1179,7 @@
     function closeCoverage() { document.getElementById('coverageModal').style.display = 'none'; }
     function splitName(c) {
         const hw = (t) => (t || "").replace(/[Ａ-Ｚａ-ｚ０-９]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0));
-        if(c.company || c.shop) return { company: hw(c.company || ""), shop: hw(c.shop || "") };
+        if(c.company || c.shop) { if(!(c.shop || "").trim() && (c.company || "").trim()) return { company: "", shop: hw(c.company) }; return { company: hw(c.company || ""), shop: hw(c.shop || "") }; }
         const n = (c.name || "").trim();
         const idx = n.search(/[ \u3000]/);
         if(idx > 0) {
