@@ -250,7 +250,7 @@
         .mode-label input { margin-right: 6px; accent-color: var(--navy); }
         .mode-label.active { color: var(--navy-dark); font-weight: 800; }
 
-        label { display: block; font-size: 0.75rem; font-weight: 700; color: var(--navy); margin-bottom: 6px; margin-top: 15px; letter-spacing: 0.03em; }
+        label { display: block; font-size: 0.72rem; font-weight: 600; color: var(--text-sub); margin-bottom: 6px; margin-top: 15px; letter-spacing: 0.03em; }
         input[type="text"], input[type="password"], textarea {
             width: 100%; padding: 12px; border: 1px solid #ddd; background: #fff;
             border-radius: 10px; box-sizing: border-box; font-size: 16px; font-family: var(--font-serif);
@@ -365,7 +365,7 @@
     <div class="left-section">
         <div class="search-row">
             <div class="place-search-box search-box-style">
-                <input type="text" id="mapJumpInput" class="place-search-input search-input-style" placeholder="エリア検索 (例: 銀座)" onkeydown="if(event.key==='Enter')searchMapLocation()">
+                <input type="text" id="mapJumpInput" class="place-search-input search-input-style" placeholder="" onkeydown="if(event.key==='Enter')searchMapLocation()">
                 <button class="place-search-btn search-btn-style" onclick="searchMapLocation()">
                     <svg class="svg-icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
                 </button>
@@ -403,7 +403,7 @@
         </div>
         
         <div class="list-search-box search-box-style">
-            <input type="text" id="searchInput" class="search-input-style" placeholder="名前、IDなどで検索..." oninput="resetAndRender()">
+            <input type="text" id="searchInput" class="search-input-style" placeholder="" oninput="resetAndRender()">
             <button class="search-btn-style" style="pointer-events: none;">
                 <svg class="svg-icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
             </button>
@@ -437,7 +437,7 @@
         <div class="settings-section">
             <label>Google Maps APIキー</label>
             <div style="display:flex; gap:10px;">
-                <input type="password" id="apiKey" placeholder="AIzaSy..." style="flex:1;">
+                <input type="password" id="apiKey" placeholder="" style="flex:1;">
                 <button onclick="saveKeyAndInit()" style="background:var(--dark); color:#fff; border:none; border-radius:2px; padding:0 15px; cursor:pointer;">保存</button>
             </div>
         </div>
@@ -446,15 +446,15 @@
             <label style="color:var(--text-main); font-size:1rem; margin-bottom:15px;">📥 データ取り込み</label>
             <div class="mode-switch">
                 <label class="mode-label active">
-                    <input type="radio" name="regMode" value="new" checked onchange="changeRegMode()"> 一括取り込み (新規・更新)
+                    <input type="radio" name="regMode" value="new" checked onchange="changeRegMode()"> 一括取り込み
                 </label>
                 <label class="mode-label">
-                    <input type="radio" name="regMode" value="update" onchange="changeRegMode()"> 部分更新 (項目指定)
+                    <input type="radio" name="regMode" value="update" onchange="changeRegMode()"> 部分更新
                 </label>
             </div>
 
             <div id="update-options" style="display:none; margin-bottom:15px;">
-                <label>更新する項目を選択 (ID + 値)</label>
+                <label>更新する項目</label>
                 <select id="updateTarget" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:4px; font-family:var(--font-serif);" onchange="updatePlaceholder()">
                     <option value="credit">与信 (前金・滞留など)</option>
                     <option value="station">最寄り駅</option>
@@ -465,8 +465,8 @@
             </div>
 
             <div id="mode-new-area">
-                <label>担当者名 (新規登録時のみ使用)</label>
-                <input type="text" id="repName" placeholder="例: 佐藤">
+                <label>担当者名</label>
+                <input type="text" id="repName" placeholder="">
             </div>
             
             <label id="csv-label">データ貼り付け</label>
@@ -491,7 +491,7 @@
         <div class="settings-section">
             <label>定型文 (チップ)</label>
             <div style="display:flex; gap:10px; margin-bottom:10px;">
-                <input type="text" id="newChipInput" placeholder="新しい定型文">
+                <input type="text" id="newChipInput" placeholder="">
                 <button onclick="addChip()" style="background:var(--gold); color:#fff; border:none; border-radius:2px; padding:0 15px; white-space:nowrap;">追加</button>
             </div>
             <div id="settings-chip-list" class="quick-chips"></div>
@@ -514,9 +514,9 @@
         <label>メモ</label><textarea id="edit-note" style="height:80px;"></textarea>
         <div id="edit-chip-area" class="quick-chips" style="margin-bottom:15px;"></div>
         
-        <label>与信 (例: 前金, 滞留中)</label><input type="text" id="edit-credit" placeholder="空欄なら表示されません" style="color:var(--alert); font-weight:bold;">
+        <label>与信</label><input type="text" id="edit-credit" placeholder="" style="color:var(--alert); font-weight:bold;">
         
-        <label>最寄り駅</label><input type="text" id="edit-station" placeholder="例: 新宿">
+        <label>最寄り駅</label><input type="text" id="edit-station" placeholder="">
         
         <label>担当者</label><input type="text" id="edit-rep">
         <label>管理ID</label><input type="text" id="edit-r">
@@ -593,8 +593,8 @@
         if(mode === 'new') {
             repArea.style.display = 'block';
             updateOptions.style.display = 'none';
-            label.innerText = "データ貼り付け (最大9列: ID|社名|店名|住所|ビル名|電話|与信|最寄り駅|メモ)";
-            input.placeholder = "R001\t(株)ABC\t大宮店\t埼玉県...\tXXビル 3F\t090-1234-5678\t前金\t大宮\t備考...";
+            label.innerText = "データ貼り付け";
+            input.placeholder = "";
         } else {
             repArea.style.display = 'none';
             updateOptions.style.display = 'block';
@@ -608,14 +608,14 @@
         const input = document.getElementById('csvInput');
         const targetText = document.querySelector(`#updateTarget option[value="${target}"]`).innerText;
         
-        label.innerText = `データ貼り付け (2列: ID|${targetText.split(' ')[0]}) ※2列以上あっても無視されます`;
+        label.innerText = "データ貼り付け";
         
         let exVal = "新しい値";
         if(target === 'credit') exVal = "前金";
         if(target === 'station') exVal = "新宿";
         if(target === 'tel') exVal = "03-1234-5678";
         
-        input.placeholder = `R001\t${exVal}\nR002\t${exVal}`;
+        input.placeholder = "";
     }
 
     function openSettings() {
