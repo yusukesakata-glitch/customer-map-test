@@ -352,6 +352,36 @@
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; }
         ::-webkit-scrollbar-thumb { background: #c9ccd2; border-radius: 3px; }
+    
+        /* === コンパクト化（地図を広く）＋ 装飾の統一 === */
+        .search-row { top: 8px; }
+        .right-section { padding-top: 54px; }
+        .panel { padding-bottom: 10px; border-radius: 16px; }
+        .header-area { padding: 10px 12px 0; }
+        .header-area h1 { font-size: 1.02rem; }
+        .hbtn { width: 36px; height: 36px; border-radius: 10px; color: var(--navy); }
+        .hbtn svg { width: 19px; height: 19px; }
+        .filter-area { padding: 8px 12px 0; gap: 6px; }
+        .filter-area select { min-height: 38px; font-size: 0.78rem; padding-top: 0; padding-bottom: 0; }
+        .list-search-box { padding: 8px 12px 0; }
+        .list-search-box input { padding-top: 8px; padding-bottom: 8px; }
+        .search-go-btn { min-height: 40px; padding: 0 16px; font-size: 0.82rem; }
+        .counts-row { padding: 9px 12px 0; gap: 14px; }
+        .counts-row .n { font-size: 20px; }
+        #stats-area { padding: 8px 12px 0; }
+        .stats-item { padding: 5px 11px; font-size: 0.75rem; }
+        .sync-float { padding: 4px 10px; font-size: 0.72rem; margin-top: 6px; }
+        .toggle-switch { width: 34px; height: 19px; }
+        .slider:before { width: 15px; height: 15px; }
+        input:checked + .slider:before { transform: translateX(15px); }
+        .right-section > .btn-current-loc { position: relative; bottom: auto; right: auto; align-self: flex-end; margin-top: 8px; width: 44px; height: 44px; flex: none; }
+        .customer-item { height: 234px; overflow: hidden; flex-basis: 84%; }
+        .customer-item .info-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .customer-item .note-box { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .customer-item .action-area { margin-top: auto; }
+        .customer-item .tag { background: #edf5fc !important; border: 1px solid #d4e5f5 !important; color: #3868a8 !important; }
+        .credit-alert { background: #fdecec; color: #c62828; border-radius: 6px; padding: 1px 7px; font-size: 0.72rem; font-weight: 700; margin-left: 6px; white-space: nowrap; }
+        .btn-copy { background: #edf5fc; color: #3868a8; border: 1px solid #d4e5f5; }
     </style>
 </head>
 <body>
@@ -370,9 +400,6 @@
         <div class="map-wrapper">
             <div id="google-map-view"></div>
             <div id="map-placeholder-msg">マップ読込中...</div>
-            <button class="btn-current-loc" id="gpsBtn" onclick="toggleGPS()">
-                <svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7-7 7z"/></svg>
-            </button>
         </div>
     </div>
 
@@ -380,8 +407,8 @@
         <div class="panel">
         <div class="header-area">
             <h1>顧客マップ</h1>
-            <button class="hbtn" onclick="openSettings()" title="データ取り込み">📥</button>
-            <button class="hbtn" onclick="openSettings()" title="設定">⚙️</button>
+            <button class="hbtn" onclick="openSettings()" title="データ取り込み"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v10m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2"/></svg></button>
+            <button class="hbtn" onclick="openSettings()" title="設定"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><circle cx="9" cy="7" r="2.2" fill="#fff"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="15" cy="12" r="2.2" fill="#fff"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="7" cy="17" r="2.2" fill="#fff"/></svg></button>
         </div>
 
         <div class="filter-area">
@@ -411,6 +438,9 @@
 
         </div>
         <div class="sync-float"><span>連動</span><label class="toggle-switch"><input type="checkbox" id="mapSyncToggle" onchange="toggleMapSync()"><span class="slider"></span></label></div>
+        <button class="btn-current-loc" id="gpsBtn" onclick="toggleGPS()">
+                <svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7-7 7z"/></svg>
+            </button>
         <div id="result-area"></div>
         <button id="load-more-btn" class="btn-load-more" onclick="loadMore()" style="display:none;">もっと見る</button>
 
