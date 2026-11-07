@@ -463,7 +463,7 @@
         </div>
 
         </div>
-        <div class="sync-float"><span>連動</span><label class="toggle-switch"><input type="checkbox" id="mapSyncToggle" onchange="toggleMapSync()"><span class="slider"></span></label></div>
+        
         <button class="btn-current-loc" id="gpsBtn" onclick="toggleGPS()">
                 <svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7-7 7z"/></svg>
             </button>
@@ -578,7 +578,7 @@
     const DB_NAME = "map_db"; 
     let currentLimit = 100;
     let activeReps = new Set();
-    let mapSyncMode = false;
+    let mapSyncMode = true;
     let targetReps = []; 
     let isPinClick = false; 
     let myLocationMarker = null; 
@@ -827,7 +827,7 @@
                 if (isTrackingLocked && window.google && google.maps && google.maps.geometry) {
                     const _pt = new google.maps.LatLng(loc.lat, loc.lng);
                     if (!lastNearbyPoint || google.maps.geometry.spherical.computeDistanceBetween(lastNearbyPoint, _pt) > 100) { lastNearbyPoint = _pt; nearbySort = { lat: loc.lat, lng: loc.lng }; resetAndRender(); }
-                } else if (mapSyncMode) resetAndRender();
+                }
             }, (err) => { alert("GPSエラー"); }, { enableHighAccuracy: true });
         }
         updateGpsBtnState();
@@ -1095,7 +1095,7 @@
         resetAndRender();        
     }
 
-    function toggleMapSync() { mapSyncMode = document.getElementById('mapSyncToggle').checked; if(mapSyncMode) resetAndRender(); }
+    function toggleMapSync() { mapSyncMode = true; resetAndRender(); }
     function splitName(c) {
         const hw = (t) => (t || "").replace(/[Ａ-Ｚａ-ｚ０-９]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0));
         if(c.company || c.shop) return { company: hw(c.company || ""), shop: hw(c.shop || "") };
@@ -1207,13 +1207,7 @@
         map.setZoom(17); 
         map.panTo({lat, lng}); 
         
-        const toggle = document.getElementById('mapSyncToggle');
-        if(!toggle.checked) {
-            toggle.checked = true;
-            toggleMapSync(); 
-        } else {
-            render();
-        }
+        render();
 
     }
     
