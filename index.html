@@ -540,6 +540,10 @@
             <div id="mode-new-area">
                 <label>担当者名</label>
                 <input type="text" id="repName" placeholder="">
+                <div style="margin-top:12px; display:flex; align-items:center; gap:10px;">
+                    <label class="btn-sub" style="padding:8px 14px; cursor:pointer;">CSVファイルを選ぶ<input type="file" accept=".csv,.tsv,.txt" style="display:none;" onchange="onCsvFileSelected(this)"></label>
+                    <span id="csv-file-name" style="font-size:0.75rem; color:#536b7d;"></span>
+                </div>
             </div>
             
             <label id="csv-label">データ貼り付け</label>
@@ -908,10 +912,78 @@
     function copyToClipboard(text) { navigator.clipboard.writeText(text).then(() => { alert("コピーしました: " + text); }); }
     function addNote(text) { const area = document.getElementById('edit-note'); area.value = (area.value ? area.value + " " : "") + text; }
 
+    function parseDelimited(text) {
+        const nl = text.indexOf("\n");
+        const firstLine = nl > -1 ? text.slice(0, nl) : text;
+        const delim = firstLine.includes("\t") ? "\t" : ",";
+        const rows = [];
+        let row = [], field = "", inQ = false;
+        for(let i = 0; i < text.length; i++) {
+            const ch = text[i];
+            if(inQ) {
+                if(ch === '"') { if(text[i+1] === '"') { field += '"'; i++; } else inQ = false; }
+                else field += ch;
+            } else if(ch === '"') { inQ = true; }
+            else if(ch === delim) { row.push(field); field = ""; }
+            else if(ch === "\n") { row.push(field); field = ""; rows.push(row); row = []; }
+            else if(ch !== "\r") field += ch;
+        }
+        if(field !== "" || row.length) { row.push(field); rows.push(row); }
+        return rows.map(r => r.map(c => (c || "").trim()));
+    }
+    const HEADER_DEFS = [["r", ["rコード", "レコード番号", "id", "コード"]], ["rep", ["担当者名", "担当者", "担当"]], ["company", ["社名", "会社名", "法人名"]], ["shop", ["店名", "店舗名"]], ["addr", ["住所"]], ["build", ["ビル名", "建物名"]], ["tel", ["電話番号", "電話", "tel"]], ["credit", ["与信"]], ["station", ["最寄り駅", "駅名", "駅"]], ["note", ["メモ", "備考"]]];
+    function mapHeader(cells) {
+        const norm = (cells || []).map(c => (c || "").replace(/\s+/g, "").toLowerCase());
+        const idx = {};
+        HEADER_DEFS.forEach(([key, names]) => { const i = norm.findIndex(h => names.includes(h)); if(i >= 0) idx[key] = i; });
+        return (idx.r !== undefined && idx.addr !== undefined) ? idx : null;
+    }
+    function rowToObj(cols, idx, fallbackRep) {
+        const g = (k) => (idx && idx[k] !== undefined) ? (cols[idx[k]] || "") : "";
+        if(idx) return { r: g('r'), rep: g('rep') || fallbackRep, company: g('company'), shop: g('shop'), addr: g('addr'), build: g('build'), tel: g('tel'), credit: g('credit'), station: g('station'), note: g('note') };
+        if(cols.length >= 10) return { r: cols[0] || "", rep: cols[1] || fallbackRep, company: cols[2] || "", shop: cols[3] || "", addr: cols[4] || "", build: cols[5] || "", tel: cols[6] || "", credit: cols[7] || "", station: cols[8] || "", note: cols[9] || "" };
+        return { r: cols[0] || "", rep: fallbackRep, company: cols[1] || "", shop: cols[2] || "", addr: cols[3] || "", build: cols[4] || "", tel: cols[5] || "", credit: cols[6] || "", station: cols[7] || "", note: cols[8] || "" };
+    }
+    async function upsertRows(objs) {
+        let count = 0, updateCount = 0, failCount = 0; const failCodes = [];
+        for(const o of objs) {
+            if(!o.r || !o.addr) continue;
+            const existing = db.find(d => d.r_code === o.r);
+            if(existing) {
+                existing.name = (o.company + " " + o.shop).trim();
+                existing.company = o.company; existing.shop = o.shop;
+                existing.building = o.build; existing.address = o.addr;
+                existing.tel = o.tel; existing.credit = o.credit;
+                if(o.station) existing.station = o.station;
+                if(o.note) existing.note = o.note;
+                if(o.rep) existing.rep_name = o.rep;
+                updateCount++;
+            } else {
+                try {
+                    const coords = await new Promise((res, rej) => geocoder.geocode({ address: o.addr }, (r, s) => s==='OK'?res({lat: r[0].geometry.location.lat(), lng: r[0].geometry.location.lng()}):rej(s)));
+                    db.push({ id: Math.random().toString(36).substr(2, 9), r_code: o.r, name: (o.company + " " + o.shop).trim(), company: o.company, shop: o.shop, building: o.build, address: o.addr, tel: o.tel, lat: coords.lat, lng: coords.lng, rep_name: o.rep, note: o.note, station: o.station, credit: o.credit });
+                    count++; log(`処理中... 新規:${count} 更新:${updateCount}`);
+                } catch(e) { failCount++; if(failCodes.length < 10) failCodes.push(o.r); }
+                await new Promise(r => setTimeout(r, 400));
+            }
+        }
+        return { count, updateCount, failCount, failCodes };
+    }
+    async function onCsvFileSelected(input) {
+        const f = input.files[0]; input.value = "";
+        if(!f) return;
+        const buf = await f.arrayBuffer();
+        let text = new TextDecoder('utf-8').decode(buf);
+        if(text.includes('\uFFFD')) text = new TextDecoder('shift-jis').decode(buf);
+        window._importFileText = text.replace(/^\uFEFF/, "");
+        document.getElementById('csv-file-name').innerText = f.name;
+        document.getElementById('csvInput').value = "";
+    }
+
     async function processData() {
         const mode = document.querySelector('input[name="regMode"]:checked').value;
         const csv = document.getElementById('csvInput').value.trim(); 
-        if(!csv) return alert('データを貼り付けてください');
+        if(!csv && window._importFileText == null) return alert('データを貼り付けるか、CSVファイルを選んでください');
         
         const btn = document.getElementById('runBtn'); btn.disabled = true; btn.innerText = "処理中...";
         
@@ -941,69 +1013,19 @@
             }
         } else {
             // 一括取り込み（新規・更新モード）
-            const key = document.getElementById('apiKey').value.trim();
             const newRepName = document.getElementById('repName').value.trim();
             try {
                 await initSystem(localStorage.getItem('map_apiKey'));
-                const lines = csv.split('\n'); 
-                let count = 0;
-                let updateCount = 0;
-
-                for(let line of lines) {
-                    const cols = line.trim().split(/\t/).map(s=>s.trim());
-                    if(cols.length < 5) continue; 
-                    
-                    // 新フォーマット (最大9列): ID|社名|店名|住所|ビル名|電話|与信|最寄り駅|メモ
-                    let r = cols[0];
-                    let name = (cols[1]+" "+cols[2]).trim();
-                    let addr = cols[3];
-                    let build = cols[4];
-                    let tel = cols[5]||"";
-                    let credit = cols[6]||"";
-                    let station = cols[7]||"";
-                    let note = cols[8]||"";
-
-                    // 既存IDがあるかチェック
-                    const existing = db.find(d => d.r_code === r);
-
-                    if (existing) {
-                        // 更新ロジック
-                        existing.name = name;
-                        existing.building = build;
-                        existing.address = addr;
-                        existing.tel = tel;
-                        existing.credit = credit;
-                        if(station) existing.station = station;
-                        if(note) existing.note = note;
-                        
-                        // 住所が変わっていたら座標更新の必要あり（今回は簡単のため座標は維持、文字だけ更新とします）
-                        
-                        updateCount++;
-                    } else {
-                        // 新規作成ロジック
-                        try {
-                            const coords = await new Promise((res, rej) => geocoder.geocode({ address: addr }, (r, s) => s==='OK'?res({lat: r[0].geometry.location.lat(), lng: r[0].geometry.location.lng()}):rej(s)));
-                            db.push({ 
-                                id: Math.random().toString(36).substr(2, 9), 
-                                r_code: r, 
-                                name: name, company: (cols[1]||"").trim(), shop: (cols[2]||"").trim(), 
-                                building: build,
-                                address: addr, 
-                                tel: tel, 
-                                lat: coords.lat, 
-                                lng: coords.lng, 
-                                rep_name: newRepName, 
-                                note: note,
-                                station: station,
-                                credit: credit
-                            });
-                            count++; log(`処理中... 新規:${count} 更新:${updateCount}`);
-                        } catch(e) {}
-                        await new Promise(r => setTimeout(r, 400));
-                    }
-                }
-                saveDB(); populateFilters(); resetAndRender(); 
-                alert(`完了: 新規 ${count} 件 / 更新 ${updateCount} 件`);
+                const srcText = (window._importFileText != null) ? window._importFileText : csv;
+                const allRows = parseDelimited(srcText);
+                const idx = allRows.length ? mapHeader(allRows[0]) : null;
+                const dataRows = idx ? allRows.slice(1) : allRows;
+                const objs = dataRows.filter(r => r.join("").trim() !== "").map(r => rowToObj(r, idx, newRepName));
+                const res = await upsertRows(objs);
+                window._importFileText = null;
+                const fnEl = document.getElementById('csv-file-name'); if(fnEl) fnEl.innerText = "";
+                saveDB(); populateFilters(); resetAndRender();
+                alert(`完了: 新規 ${res.count} 件 / 更新 ${res.updateCount} 件` + (res.failCount ? `\n座標が取れず追加できなかった新規: ${res.failCount} 件（${res.failCodes.join("、")}${res.failCount > res.failCodes.length ? " ほか" : ""}）` : ""));
             } finally { btn.disabled = false; btn.innerText = "取り込み実行"; }
         }
     }
