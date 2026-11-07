@@ -566,19 +566,19 @@
     <div class="modal-content">
         <h3>情報編集</h3>
         <input type="hidden" id="edit-id"><input type="hidden" id="orig-addr">
+        <label>店名・社名</label><input type="text" id="edit-name">
+        <label>電話番号</label><input type="text" id="edit-tel">
+        <label>住所</label><input type="text" id="edit-addr">
+        <label>ビル名</label><input type="text" id="edit-building">
+        <label>最寄り駅</label><input type="text" id="edit-station" placeholder="">
+        <label>担当者</label><input type="text" id="edit-rep">
+        <label>管理ID</label><input type="text" id="edit-r">
+        <label>与信</label><input type="text" id="edit-credit" placeholder="" style="color:var(--alert); font-weight:bold;">
         <label>メモ</label><textarea id="edit-note" style="height:80px;"></textarea>
         <div id="edit-chip-area" class="quick-chips" style="margin-bottom:15px;"></div>
         
-        <label>与信</label><input type="text" id="edit-credit" placeholder="" style="color:var(--alert); font-weight:bold;">
         
-        <label>最寄り駅</label><input type="text" id="edit-station" placeholder="">
         
-        <label>担当者</label><input type="text" id="edit-rep">
-        <label>管理ID</label><input type="text" id="edit-r">
-        <label>店名・社名</label><input type="text" id="edit-name">
-        <label>ビル名</label><input type="text" id="edit-building">
-        <label>電話番号</label><input type="text" id="edit-tel">
-        <label>住所</label><input type="text" id="edit-addr">
         <div style="display:flex; gap:15px; margin-top:30px;">
             <button class="btn-sub" style="flex:1;" onclick="closeModal()">キャンセル</button>
             <button class="btn-main" style="flex:1; margin-top:0;" onclick="saveEdit()">保存</button>
