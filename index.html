@@ -442,6 +442,11 @@
         .cov-num { color: var(--text-sub); font-size: 0.78rem; }
         .cov-bar { height: 5px; background: #edf5fc; border-radius: 99px; margin-top: 6px; overflow: hidden; }
         .cov-fill { height: 100%; background: var(--gold); border-radius: 99px; }
+    
+        .cov-open-row { display: flex; justify-content: flex-end; margin-top: 4px; }
+        .cov-tabs { display: flex; gap: 8px; margin: 4px 0 10px; }
+        .cov-tab { flex: 1; padding: 7px 0; border-radius: 999px; border: 1.5px solid #d7e3ee; background: #fff; color: #536b7d; font-weight: 700; font-size: 0.8rem; cursor: pointer; }
+        .cov-tab.on { background: var(--navy); border-color: var(--navy); color: #fff; }
     </style>
 </head>
 <body>
@@ -474,7 +479,8 @@
             <button class="search-go-btn" onclick="doSearch()">検索</button>
         </div>
 
-        <div class="counts-row"><div class="c"><span class="n" id="cntAll">-</span><span class="l">該当</span></div><div class="c mine"><span class="n" id="cntMine">-</span><span class="l">自分の顧客</span></div><div class="c others"><span class="n" id="cntOthers">-</span><span class="l">他担当の顧客</span></div><button class="cov-open" onclick="openCoverage()">駅別カバー率</button></div>
+        <div class="counts-row"><div class="c"><span class="n" id="cntAll">-</span><span class="l">該当</span></div><div class="c mine"><span class="n" id="cntMine">-</span><span class="l">自分の顧客</span></div><div class="c others"><span class="n" id="cntOthers">-</span><span class="l">他担当の顧客</span></div></div>
+        <div class="cov-open-row"><button class="cov-open" onclick="openCoverage()">訪問カバー率</button></div>
         <div id="stats-area">
             <div class="stats-header">
                 <div class="stats-total" id="stats-total-text">-- 件</div>
@@ -573,9 +579,10 @@
 
 <div id="coverageModal" class="modal-overlay">
     <div class="modal-content">
-        <h3>駅ごとの訪問カバー率</h3>
+        <h3>訪問カバー率</h3>
         <div id="coverage-summary" style="font-size:0.85rem; margin-bottom:6px;"></div>
-        <div style="font-size:0.7rem; color:#999; margin-bottom:10px;">訪問済み＝日付入りのメモがある店／駅をタップするとその駅で検索します（未訪問が多い順・50駅まで）</div>
+        <div class="cov-tabs"><button id="covTabArea" class="cov-tab on" onclick="openCoverage('area')">エリア（住所）</button><button id="covTabStation" class="cov-tab" onclick="openCoverage('station')">駅</button></div>
+        <div style="font-size:0.7rem; color:#999; margin-bottom:10px;">訪問済み＝日付入りのメモがある店／行をタップするとその条件で検索します（未訪問が多い順・50件まで）</div>
         <div id="coverage-list"></div>
         <button class="btn-sub" style="width:100%; margin-top:15px;" onclick="closeCoverage()">閉じる</button>
     </div>
@@ -1130,35 +1137,50 @@
     }
 
     function toggleMapSync() { mapSyncMode = true; resetAndRender(); }
-    function openCoverage() {
+    function areaOf(addr) {
+        if(!addr) return "";
+        const a = String(addr).replace(/^.+?(都|道|府|県)/, "");
+        const wm = a.match(/^(.+?[区市町村])/);
+        if(!wm) return "";
+        const tm = a.slice(wm[0].length).match(/^[^0-9０-９\-−ー－ ]+/);
+        if(!tm) return "";
+        const town = tm[0].replace(/丁目$/, "");
+        return town ? (wm[1] + " " + town) : "";
+    }
+    function openCoverage(axis) {
+        window._covAxis = axis || window._covAxis || 'area';
+        const isArea = window._covAxis === 'area';
+        document.getElementById('covTabArea').classList.toggle('on', isArea);
+        document.getElementById('covTabStation').classList.toggle('on', !isArea);
         const q = normalize(document.getElementById('searchInput').value);
         const filtered = db.filter(d => matchCustomer(d, q));
         const targets = activeReps.size ? filtered.filter(d => activeReps.has(d.rep_name)) : filtered;
         const dateRe = /(19|20)\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])/;
-        const byStation = {};
+        const groups = {};
         let visitedAll = 0, noneTotal = 0, noneVisited = 0;
         targets.forEach(d => {
             const visited = dateRe.test(d.note || "");
             if(visited) visitedAll++;
-            const st = (d.station || "").trim();
-            if(!st) { noneTotal++; if(visited) noneVisited++; return; }
-            const key = normalize(st).replace(/駅$/, "");
-            if(!byStation[key]) byStation[key] = { display: st, total: 0, visited: 0 };
-            byStation[key].total++;
-            if(visited) byStation[key].visited++;
+            let label = "", key = "";
+            if(isArea) { label = areaOf(d.address); key = label; }
+            else { const st = (d.station || "").trim(); if(st) { label = st; key = normalize(st).replace(/駅$/, ""); } }
+            if(!label) { noneTotal++; if(visited) noneVisited++; return; }
+            if(!groups[key]) groups[key] = { label, total: 0, visited: 0 };
+            groups[key].total++;
+            if(visited) groups[key].visited++;
         });
-        const rows = Object.values(byStation).map(v => ({ st: v.display, total: v.total, visited: v.visited, unvisited: v.total - v.visited, pct: v.total ? Math.round(v.visited / v.total * 100) : 0 }));
+        const rows = Object.values(groups).map(v => ({ label: v.label, total: v.total, visited: v.visited, unvisited: v.total - v.visited, pct: v.total ? Math.round(v.visited / v.total * 100) : 0 }));
         rows.sort((a, b) => (b.unvisited - a.unvisited) || (b.total - a.total));
         document.getElementById('coverage-summary').innerHTML = `全体：訪問済み <b>${visitedAll.toLocaleString()}</b> / ${targets.length.toLocaleString()}件`;
         const list = document.getElementById('coverage-list'); list.innerHTML = "";
         const addRow = (r, clickable) => {
             const div = document.createElement('div'); div.className = 'cov-row';
-            div.innerHTML = `<div class="cov-head"><span class="cov-name">${r.st}</span><span class="cov-num">${r.visited}/${r.total}（${r.pct}%）</span></div><div class="cov-bar"><div class="cov-fill" style="width:${r.pct}%"></div></div>`;
-            if(clickable) div.onclick = () => { document.getElementById('searchInput').value = r.st; closeCoverage(); doSearch(); };
+            div.innerHTML = `<div class="cov-head"><span class="cov-name">${r.label}</span><span class="cov-num">${r.visited}/${r.total}（${r.pct}%）</span></div><div class="cov-bar"><div class="cov-fill" style="width:${r.pct}%"></div></div>`;
+            if(clickable) div.onclick = () => { document.getElementById('searchInput').value = r.label; closeCoverage(); doSearch(); };
             list.appendChild(div);
         };
         rows.slice(0, 50).forEach(r => addRow(r, true));
-        if(noneTotal) addRow({ st: "（駅なし）", total: noneTotal, visited: noneVisited, pct: Math.round(noneVisited / noneTotal * 100) }, false);
+        if(noneTotal) addRow({ label: isArea ? "（住所なし・不明）" : "（駅なし）", total: noneTotal, visited: noneVisited, pct: Math.round(noneVisited / noneTotal * 100) }, false);
         if(!rows.length && !noneTotal) list.innerHTML = '<div style="font-size:0.85rem; color:#999;">対象の店がありません</div>';
         document.getElementById('coverageModal').style.display = 'flex';
     }
