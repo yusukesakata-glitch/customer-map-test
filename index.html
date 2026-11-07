@@ -386,6 +386,14 @@
         .sync-float .toggle-switch { width: 36px; height: 20px; flex: none; }
         .sync-float .slider:before { width: 16px; height: 16px; left: 2px; top: 2px; bottom: auto; }
         .sync-float input:checked + .slider:before { transform: translateX(16px); }
+    
+        .name-lines { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+        .company-name { font-size: 0.76rem; color: var(--text-sub); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .shop-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; letter-spacing: normal !important; }
+        .info-main { align-items: flex-start; }
+        .info-main .status-dot { margin-top: 5px; flex: none; }
+        .info-company { font-size: 0.72rem; color: #5f768c; margin-top: 1px; }
+        .customer-item { height: 250px; }
     </style>
 </head>
 <body>
@@ -446,9 +454,9 @@
 
 <div id="settingsModal" class="modal-overlay">
     <div class="modal-content">
-        <h3>設定</h3>
+        <h3 id="settings-title">設定</h3>
         
-        <div class="settings-section">
+        <div class="settings-section sec-settings">
             <label>Google Maps APIキー</label>
             <div style="display:flex; gap:10px;">
                 <input type="password" id="apiKey" placeholder="" style="flex:1;">
@@ -456,8 +464,7 @@
             </div>
         </div>
 
-        <div class="settings-section">
-            <label style="color:var(--text-main); font-size:1rem; margin-bottom:15px;">📥 データ取り込み</label>
+        <div class="settings-section" id="sec-import">
             <div class="mode-switch">
                 <label class="mode-label active">
                     <input type="radio" name="regMode" value="new" checked onchange="changeRegMode()"> 一括取り込み
@@ -497,12 +504,12 @@
             <div id="log-area" style="margin-top:10px; font-size:0.7rem; color:#999; text-align:center;"></div>
         </div>
 
-        <div class="settings-section">
+        <div class="settings-section sec-settings">
             <label>自分のピン (金)</label>
             <div id="rep-checklist" class="rep-checklist"></div>
         </div>
         
-        <div class="settings-section">
+        <div class="settings-section sec-settings">
             <label>定型文 (チップ)</label>
             <div style="display:flex; gap:10px; margin-bottom:10px;">
                 <input type="text" id="newChipInput" placeholder="">
@@ -511,7 +518,7 @@
             <div id="settings-chip-list" class="quick-chips"></div>
         </div>
         
-        <div class="settings-section">
+        <div class="settings-section sec-settings">
             <label>ストレージ状況</label>
             <div style="font-size:0.8rem; margin-bottom:8px;">現在のDB: <span id="current-db-name" style="font-weight:600;"></span></div>
             <div id="storage-list" style="max-height:100px; overflow-y:auto; border:1px solid #eee; padding:5px;"></div>
@@ -556,6 +563,8 @@
     let myLocationMarker = null; 
     let watchId = null;
     let isTrackingLocked = false;
+    let nearbySort = null;
+    let lastNearbyPoint = null;
     let quickChips = ["不在", "移転", "商談中", "完了"];
     
     let highlightedId = null;
@@ -634,9 +643,17 @@
 
     function openImport() {
         openSettings();
-        setTimeout(() => { const el = document.getElementById('csvInput'); if(el) { el.scrollIntoView({ block: 'center' }); el.focus({ preventScroll: true }); } }, 80);
+        showSettingsPage('import');
+        setTimeout(() => { const el = document.getElementById('csvInput'); if(el) el.focus({ preventScroll: true }); }, 80);
+    }
+    function showSettingsPage(page) {
+        const imp = document.getElementById('sec-import');
+        if(imp) imp.style.display = page === 'import' ? '' : 'none';
+        document.querySelectorAll('.sec-settings').forEach(el => el.style.display = page === 'settings' ? '' : 'none');
+        const t = document.getElementById('settings-title'); if(t) t.innerText = page === 'import' ? 'データ取り込み' : '設定';
     }
     function openSettings() {
+        showSettingsPage('settings');
         const modal = document.getElementById('settingsModal');
         const repList = document.getElementById('rep-checklist');
         repList.innerHTML = "";
@@ -732,7 +749,7 @@
             infoWindow = new google.maps.InfoWindow(); 
             
             map.addListener('idle', () => { if(!isPinClick && mapSyncMode) resetAndRender(); isPinClick=false; });
-            map.addListener('dragstart', () => { if(watchId) { isTrackingLocked=false; updateGpsBtnState(); } });
+            map.addListener('dragstart', () => { if(watchId) { isTrackingLocked=false; nearbySort=null; updateGpsBtnState(); } });
             
             map.addListener('click', () => {
                 if (highlightedId) {
@@ -760,7 +777,7 @@
         if (!map) return alert("先にAPIキーを設定してください");
 
         if (watchId) {
-            if (isTrackingLocked) { navigator.geolocation.clearWatch(watchId); watchId = null; isTrackingLocked = false; if(myLocationMarker) { myLocationMarker.setMap(null); myLocationMarker = null; } } 
+            if (isTrackingLocked) { navigator.geolocation.clearWatch(watchId); watchId = null; isTrackingLocked = false; nearbySort = null; lastNearbyPoint = null; if(myLocationMarker) { myLocationMarker.setMap(null); myLocationMarker = null; } } 
             else { isTrackingLocked = true; if(myLocationMarker) map.panTo(myLocationMarker.position); }
         } else {
             isTrackingLocked = true;
@@ -772,7 +789,10 @@
                     myLocationMarker = new AdvancedMarkerElement({ map: map, position: loc, content: pin, title: "現在地", zIndex: 999 });
                 }
                 if (isTrackingLocked) map.panTo(loc);
-                if (mapSyncMode) resetAndRender();
+                if (isTrackingLocked && window.google && google.maps && google.maps.geometry) {
+                    const _pt = new google.maps.LatLng(loc.lat, loc.lng);
+                    if (!lastNearbyPoint || google.maps.geometry.spherical.computeDistanceBetween(lastNearbyPoint, _pt) > 100) { lastNearbyPoint = _pt; nearbySort = { lat: loc.lat, lng: loc.lng }; resetAndRender(); }
+                } else if (mapSyncMode) resetAndRender();
             }, (err) => { alert("GPSエラー"); }, { enableHighAccuracy: true });
         }
         updateGpsBtnState();
@@ -887,7 +907,7 @@
                             db.push({ 
                                 id: Math.random().toString(36).substr(2, 9), 
                                 r_code: r, 
-                                name: name, 
+                                name: name, company: (cols[1]||"").trim(), shop: (cols[2]||"").trim(), 
                                 building: build,
                                 address: addr, 
                                 tel: tel, 
@@ -973,7 +993,7 @@
                     const build = c.building ? `<div style="font-size:0.8rem;color:#444;margin-bottom:2px;font-weight:bold;">${c.building}</div>` : "";
                     const creditHtml = c.credit ? `<span style="color:#c62828; font-weight:bold; margin-left:4px;">【${c.credit}】</span>` : "";
                     
-                    html += `<div class="info-window-card"><div class="info-title">${c.name}${creditHtml}</div><div class="info-meta">${c.rep_name} / ${c.r_code}</div>${telBtn}${build}<div class="info-addr">${c.address}</div>${note}<button class="info-btn btn-edit-sm" onclick="openEdit('${c.id}')">編集</button></div>`;
+                    html += `<div class="info-window-card"><div class="info-title">${splitName(c).shop}${creditHtml}</div>${splitName(c).company ? `<div class="info-company">${splitName(c).company}</div>` : ""}<div class="info-meta">${c.rep_name} / ${c.r_code}</div>${telBtn}${build}<div class="info-addr">${c.address}</div>${note}<button class="info-btn btn-edit-sm" onclick="openEdit('${c.id}')">編集</button></div>`;
                 });
                 html += '</div>';
                 infoWindow.setContent(html); infoWindow.open(map, m);
@@ -1032,6 +1052,16 @@
     }
 
     function toggleMapSync() { mapSyncMode = document.getElementById('mapSyncToggle').checked; if(mapSyncMode) resetAndRender(); }
+    function splitName(c) {
+        if(c.company || c.shop) return { company: c.company || "", shop: c.shop || "" };
+        const n = (c.name || "").trim();
+        const idx = n.search(/[ \u3000]/);
+        if(idx > 0) {
+            const head = n.slice(0, idx), rest = n.slice(idx).trim();
+            if(/(株式会社|有限会社|合同会社|合資会社|合名会社|医療法人|社会福祉法人|一般社団法人|公益社団法人|学校法人|NPO法人|（株）|\(株\))/.test(head)) return { company: head, shop: rest };
+        }
+        return { company: "", shop: n };
+    }
     function resetAndRender() { render(); }
     function changeLimit() { currentLimit = document.getElementById('limitSelect').value === 'ALL' ? db.length : parseInt(document.getElementById('limitSelect').value); render(); }
     function toggleRep(name) { if(activeReps.has(name)) activeReps.delete(name); else activeReps.add(name); render(); }
@@ -1071,6 +1101,11 @@
         document.getElementById('cntMine').innerText = targetReps.length ? _mineCnt : '–';
         document.getElementById('cntOthers').innerText = targets.length - _mineCnt;
         
+        if (nearbySort && !mapSyncMode && window.google && google.maps && google.maps.geometry) {
+            const _pt = new google.maps.LatLng(nearbySort.lat, nearbySort.lng);
+            targets.forEach(d => { d._nd = (d.lat && d.lng) ? google.maps.geometry.spherical.computeDistanceBetween(_pt, new google.maps.LatLng(d.lat, d.lng)) : 1e12; });
+            targets.sort((a, b) => a._nd - b._nd);
+        }
         const displayTargets = targets.slice(0, currentLimit);
         window._lastDisplay = displayTargets;
         updateMapPins(displayTargets);
@@ -1082,6 +1117,7 @@
             const buildHtml = c.building ? `<div class="info-sub">${c.building}</div>` : "";
             
             const creditHtml = c.credit ? `<span class="credit-alert">【${c.credit}】</span>` : "";
+            const np = splitName(c);
             
             const div = document.createElement('div');
             div.className = 'customer-item'; div.dataset.id = c.id;
@@ -1089,7 +1125,7 @@
             div.innerHTML = `<div style="flex:1;">
                 <div class="info-main">
                     <span class="status-dot" style="background:${color};"></span>
-                    <span class="shop-name">${c.name}</span>
+                    <span class="name-lines">${np.company ? `<span class="company-name">${np.company}</span>` : ""}<span class="shop-name">${np.shop}</span></span>
                     ${creditHtml}
                 </div>
                 <div class="info-sub">
