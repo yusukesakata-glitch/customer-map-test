@@ -587,7 +587,7 @@
         <h3>訪問カバー率</h3>
         <div id="coverage-summary" style="font-size:0.85rem; margin-bottom:6px;"></div>
         <div class="cov-tabs"><button id="covSortCount" class="cov-tab on" onclick="setCoverageSort('count')">件数</button><button id="covSortPct" class="cov-tab" onclick="setCoverageSort('pct')">網羅率</button><button id="covSortDir" class="cov-tab" onclick="toggleCoverageDir()">↓ 降順</button></div>
-        <div style="font-size:0.7rem; color:#999; margin-bottom:10px;">訪問済み＝日付入りのメモがある店／行をタップするとその条件で検索します（50件まで）</div>
+        <div style="font-size:0.7rem; color:#999; margin-bottom:10px;">訪問済み＝日付入りのメモがある店／行をタップするとその条件で検索します</div>
         <div id="coverage-list"></div>
         <button class="btn-sub" style="width:100%; margin-top:15px;" onclick="closeCoverage()">閉じる</button>
     </div>
@@ -1145,12 +1145,10 @@
     function areaOf(addr) {
         if(!addr) return "";
         const a = String(addr).replace(/^.+?(都|道|府|県)/, "");
-        const wm = a.match(/^(.+?[区市町村])/);
+        const wm = a.match(/^(.+?[区市町村])(.*)$/);
         if(!wm) return "";
-        const tm = a.slice(wm[0].length).match(/^[^0-9０-９\-−ー－ ]+/);
-        if(!tm) return "";
-        const town = tm[0].replace(/丁目$/, "");
-        return town ? (wm[1] + " " + town) : "";
+        const km = (wm[2] || "").match(/^(.+?区)/);
+        return km ? (wm[1] + " " + km[1]) : wm[1];
     }
     function setCoverageSort(key) { window._covSort = key; openCoverage(); }
     function toggleCoverageDir() { window._covDir = (window._covDir === 'asc') ? 'desc' : 'asc'; openCoverage(); }
@@ -1197,7 +1195,7 @@
             if(clickable) div.onclick = () => { document.getElementById('searchInput').value = r.label; closeCoverage(); doSearch(); };
             list.appendChild(div);
         };
-        rows.slice(0, 50).forEach(r => addRow(r, true));
+        rows.forEach(r => addRow(r, true));
         if(noneTotal) addRow({ label: "（住所なし・不明）", total: noneTotal, visited: noneVisited, pct: Math.round(noneVisited / noneTotal * 100) }, false);
         if(!rows.length && !noneTotal) list.innerHTML = '<div style="font-size:0.85rem; color:#999;">対象の店がありません</div>';
         document.getElementById('coverageModal').style.display = 'flex';
