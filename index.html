@@ -761,7 +761,7 @@
             map = new Map(div, { center:{lat:35.68, lng:139.76}, zoom:13, mapId: "DEMO_MAP_ID", mapTypeControl: false, streetViewControl: false }); 
             infoWindow = new google.maps.InfoWindow(); 
             
-            map.addListener('idle', () => { if(!isPinClick && mapSyncMode) resetAndRender(); isPinClick=false; });
+            map.addListener('idle', () => { const wasPin = isPinClick; isPinClick = false; if(!mapSyncMode || wasPin || Date.now() < (window._syncSuppressUntil || 0)) return; clearTimeout(window._idleTimer); window._idleTimer = setTimeout(() => { if(mapSyncMode) resetAndRender(); }, 250); });
             map.addListener('dragstart', () => { if(watchId) { isTrackingLocked=false; nearbySort=null; updateGpsBtnState(); } });
             
             map.addListener('click', () => {
@@ -954,13 +954,15 @@
         if (mapSyncMode && map) {
             const fPref = "ALL";
             const fSt = "ALL";
-            const mapBaseData = db.filter(d => {
+            let mapBaseData = db.filter(d => {
                 if(fPref !== "ALL" && getPrefecture(d.address) !== fPref) return false;
                 if(fSt !== "ALL" && (d.station||"") !== fSt) return false;
                 if(activeReps.size > 0 && !activeReps.has(d.rep_name)) return false;
                 if(hasSearch && !normalize(d.name + d.r_code + d.rep_name + d.address + (d.building||"") + (d.station||"")).includes(searchInput)) return false;
                 return true;
             });
+            const _b = map.getBounds();
+            if(_b) mapBaseData = mapBaseData.filter(d => d.lat && d.lng && _b.contains(new google.maps.LatLng(d.lat, d.lng)));
             const center = map.getCenter();
             mapBaseData.forEach(d => d._dist = google.maps.geometry.spherical.computeDistanceBetween(center, new google.maps.LatLng(d.lat, d.lng)));
             mapBaseData.sort((a, b) => a._dist - b._dist);
@@ -1304,7 +1306,7 @@
                 document.querySelectorAll('.customer-item.highlighted').forEach(el => el.classList.remove('highlighted'));
                 best.classList.add('highlighted');
                 if(window._lastDisplay) updateMapPins(window._lastDisplay);
-                if(map && c.lat && c.lng) { isPinClick = true; map.panTo({ lat: c.lat, lng: c.lng }); }
+                if(map && c.lat && c.lng) { window._syncSuppressUntil = Date.now() + 900; map.panTo({ lat: c.lat, lng: c.lng }); }
             }, 220);
         }, { passive: true });
     })();
