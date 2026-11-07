@@ -890,7 +890,7 @@
         if(field !== "" || row.length) { row.push(field); rows.push(row); }
         return rows.map(r => r.map(c => (c || "").trim()));
     }
-    const HEADER_DEFS = [["r", ["rコード", "レコード番号", "id", "コード"]], ["rep", ["担当者名", "担当者", "担当"]], ["company", ["社名", "会社名", "法人名"]], ["shop", ["店名", "店舗名"]], ["addr", ["住所"]], ["build", ["ビル名", "建物名"]], ["tel", ["電話番号", "電話", "tel"]], ["credit", ["与信"]], ["station", ["最寄り駅", "駅名", "駅"]], ["note", ["メモ", "備考"]]];
+    const HEADER_DEFS = [["r", ["rコード", "レコード番号", "id", "コード", "顧客no"]], ["rep", ["担当者名", "担当者", "担当", "現在担当"]], ["company", ["社名", "会社名", "法人名"]], ["shop", ["店名", "店舗名", "窓口店舗名"]], ["addr", ["住所"]], ["build", ["ビル名", "建物名"]], ["tel", ["電話番号", "電話", "tel"]], ["credit", ["与信", "営業・請求注意点"]], ["station", ["最寄り駅", "駅名", "駅"]], ["note", ["メモ", "備考"]]];
     function mapHeader(cells) {
         const norm = (cells || []).map(c => (c || "").replace(/\s+/g, "").toLowerCase());
         const idx = {};
