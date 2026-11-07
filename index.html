@@ -1295,6 +1295,7 @@
                 document.querySelectorAll('.customer-item.highlighted').forEach(el => el.classList.remove('highlighted'));
                 best.classList.add('highlighted');
                 if(window._lastDisplay) updateMapPins(window._lastDisplay);
+                if(map && c.lat && c.lng) { isPinClick = true; map.panTo({ lat: c.lat, lng: c.lng }); }
             }, 220);
         }, { passive: true });
     })();
