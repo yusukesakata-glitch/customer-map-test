@@ -532,6 +532,7 @@
             <div class="data-tools">
                 <button class="btn-sub" onclick="shareOrDownload()">保存 (JSON)</button>
                 <button class="btn-sub" onclick="document.getElementById('fileInput').click()">読込 (JSON)</button>
+                <button class="btn-sub" onclick="exportNotes()">メモ書出</button>
                 <input type="file" id="fileInput" accept=".json,application/json" style="display:none" onchange="uploadData(this)">
             </div>
             <button class="btn-del" onclick="clearAll()">全データ削除</button>
@@ -1268,7 +1269,9 @@
         const newAddr = document.getElementById('edit-addr').value.trim();
         const oldAddr = document.getElementById('orig-addr').value;
 
-        db[idx].note = document.getElementById('edit-note').value;
+        const _noteIn = document.getElementById('edit-note').value;
+        if(_noteIn.trim() && _noteIn !== db[idx].note && !/^\d{8}/.test(_noteIn.trim())) { const _d = new Date(); const _ymd = `${_d.getFullYear()}${String(_d.getMonth()+1).padStart(2,'0')}${String(_d.getDate()).padStart(2,'0')}`; db[idx].note = _ymd + _noteIn.trim(); }
+        else db[idx].note = _noteIn;
         db[idx].rep_name = document.getElementById('edit-rep').value;
         db[idx].r_code = document.getElementById('edit-r').value;
         db[idx].name = document.getElementById('edit-name').value;
@@ -1307,6 +1310,32 @@
 
     function deleteCustomer() { if(confirm("このデータを削除しますか？")) { db = db.filter(x => x.id !== document.getElementById('edit-id').value); saveDB(); render(); closeModal(); } }
     function shareOrDownload() { const blob = new Blob([JSON.stringify(db)], {type: 'application/json'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `map_data.json`; a.click(); }
+    function exportNotes() {
+        const entries = [];
+        db.forEach(c => {
+            const note = (c.note || "").trim();
+            if(!note) return;
+            note.split(/(?=\d{8})/).map(t => t.trim()).filter(Boolean).forEach(p => {
+                const m = p.match(/^(\d{8})\s*/);
+                entries.push({ date: m ? m[1] : "", text: (m ? p.slice(m[0].length) : p).replace(/\s*\n\s*/g, " / "), c });
+            });
+        });
+        if(!entries.length) return alert("メモのある顧客がありません");
+        const groups = {};
+        entries.forEach(e => { (groups[e.date] = groups[e.date] || []).push(e); });
+        const fmt = d => d ? `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}` : "日付なし";
+        let out = "";
+        Object.keys(groups).sort().reverse().forEach(d => {
+            out += `■ ${fmt(d)}\n`;
+            groups[d].forEach(e => { out += `${e.c.r_code || "-"} ${splitName(e.c).shop || e.c.name || ""}（${e.c.rep_name || ""}）: ${e.text}\n`; });
+            out += "\n";
+        });
+        const _d = new Date(); const _ymd = `${_d.getFullYear()}${String(_d.getMonth()+1).padStart(2,'0')}${String(_d.getDate()).padStart(2,'0')}`;
+        const blob = new Blob([out], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `notes-${_ymd}.txt`; a.click();
+    }
     function uploadData(i) { const f=i.files[0]; if(!f)return; const r=new FileReader(); r.onload=e=>{try{if(confirm("JSONファイルを読み込みますか？")){db=JSON.parse(e.target.result);saveDB();populateFilters();resetAndRender();alert("読み込み完了");}}catch(z){alert("読み込み失敗");}}; r.readAsText(f); }
     function saveDB() { localStorage.setItem(DB_NAME, JSON.stringify(db)); }
     function clearAll() { if(confirm("全データを削除しますか？")) { localStorage.removeItem(DB_NAME); location.reload(); } }
