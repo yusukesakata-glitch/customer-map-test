@@ -652,7 +652,7 @@
     };
 
     function normalize(s) { return (s||"").replace(/[Ａ-Ｚａ-ｚ０-９]/g, c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0)).toLowerCase().replace(/\s+/g,""); }
-    function matchCustomer(c, q) { if(!q) return true; const t = normalize(c.name + c.r_code + c.rep_name + c.address + (c.building||"") + (c.station||"")); if(t.includes(q)) return true; if(q.length > 1 && q.endsWith("駅")) return normalize(c.station||"").includes(q.slice(0, -1)); return false; }
+    function matchCustomer(c, q) { if(!q) return true; const t = normalize(c.name + c.r_code + c.rep_name + c.address + (c.building||"") + (c.station||"")); if(t.includes(q)) return true; if(q.length > 1 && q.endsWith("駅")) { const base = q.slice(0, -1); return normalize(c.station||"").includes(base) || normalize(c.address||"").includes(base) || normalize(c.name||"").includes(base); } return false; }
     function log(msg) { document.getElementById('log-area').innerText = msg; }
     function updateStorageInfo() { const el = document.getElementById('current-db-name'); if(!el) return; try { const raw = localStorage.getItem(DB_NAME); if(!raw) { el.innerText = "0件"; return; } let _t = JSON.parse(raw).length.toLocaleString() + "件（約" + (new Blob([raw]).size / 1048576).toFixed(1) + "MB）"; try { const _info = JSON.parse(localStorage.getItem('map_data_info') || "null"); if(_info && _info.fileDate) _t += "・" + _info.fileDate + "のファイル"; } catch(e) {} el.innerText = _t; } catch(e) { el.innerText = "-"; } }
 
