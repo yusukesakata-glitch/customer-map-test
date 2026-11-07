@@ -382,6 +382,10 @@
         .customer-item .tag { background: #edf5fc !important; border: 1px solid #d4e5f5 !important; color: #3868a8 !important; }
         .credit-alert { background: #fdecec; color: #c62828; border-radius: 6px; padding: 1px 7px; font-size: 0.72rem; font-weight: 700; margin-left: 6px; white-space: nowrap; }
         .btn-copy { background: #edf5fc; color: #3868a8; border: 1px solid #d4e5f5; }
+    
+        .sync-float .toggle-switch { width: 36px; height: 20px; flex: none; }
+        .sync-float .slider:before { width: 16px; height: 16px; left: 2px; top: 2px; bottom: auto; }
+        .sync-float input:checked + .slider:before { transform: translateX(16px); }
     </style>
 </head>
 <body>
@@ -399,7 +403,7 @@
         <div class="panel">
         <div class="header-area">
             <h1>顧客マップ</h1>
-            <button class="hbtn" onclick="openSettings()" title="データ取り込み"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v10m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2"/></svg></button>
+            <button class="hbtn" onclick="openImport()" title="データ取り込み"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v10m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2"/></svg></button>
             <button class="hbtn" onclick="openSettings()" title="設定"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><circle cx="9" cy="7" r="2.2" fill="#fff"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="15" cy="12" r="2.2" fill="#fff"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="7" cy="17" r="2.2" fill="#fff"/></svg></button>
         </div>
 
@@ -628,6 +632,10 @@
         input.placeholder = "";
     }
 
+    function openImport() {
+        openSettings();
+        setTimeout(() => { const el = document.getElementById('csvInput'); if(el) { el.scrollIntoView({ block: 'center' }); el.focus({ preventScroll: true }); } }, 80);
+    }
     function openSettings() {
         const modal = document.getElementById('settingsModal');
         const repList = document.getElementById('rep-checklist');
@@ -953,7 +961,6 @@
             
             pinView.style.backgroundColor = bgColor; 
             pinView.style.borderRadius = "50% 50% 50% 0"; pinView.style.transform = "rotate(-45deg)"; pinView.style.border = "2.5px solid white"; pinView.style.boxShadow = "0 2px 5px rgba(0,0,0,0.2)";
-            if(hasSearch && !isHit && !isHighlighted) pinView.style.opacity = "0.6";
 
             const m = new AdvancedMarkerElement({ position: {lat:first.lat, lng:first.lng}, map: map, content: pinView, zIndex: (isHit || isHighlighted) ? 1000 : (isMe ? 100 : 1) });
             
@@ -1065,6 +1072,7 @@
         document.getElementById('cntOthers').innerText = targets.length - _mineCnt;
         
         const displayTargets = targets.slice(0, currentLimit);
+        window._lastDisplay = displayTargets;
         updateMapPins(displayTargets);
 
         displayTargets.forEach(c => {
@@ -1076,7 +1084,7 @@
             const creditHtml = c.credit ? `<span class="credit-alert">【${c.credit}】</span>` : "";
             
             const div = document.createElement('div');
-            div.className = 'customer-item';
+            div.className = 'customer-item'; div.dataset.id = c.id;
             
             div.innerHTML = `<div style="flex:1;">
                 <div class="info-main">
@@ -1215,6 +1223,31 @@
     function uploadData(i) { const f=i.files[0]; if(!f)return; const r=new FileReader(); r.onload=e=>{try{if(confirm("JSONファイルを読み込みますか？")){db=JSON.parse(e.target.result);saveDB();populateFilters();resetAndRender();alert("読み込み完了");}}catch(z){alert("読み込み失敗");}}; r.readAsText(f); }
     function saveDB() { localStorage.setItem(DB_NAME, JSON.stringify(db)); }
     function clearAll() { if(confirm("全データを削除しますか？")) { localStorage.removeItem(DB_NAME); location.reload(); } }
+
+    // カードをスワイプしたら、その顧客のピンへ地図を寄せてハイライト
+    (function(){
+        const area = document.getElementById('result-area');
+        if(!area) return;
+        let timer = null, lastId = null;
+        area.addEventListener('scroll', () => {
+            clearTimeout(timer);
+            timer = setTimeout(() => {
+                if(!map || area.scrollLeft < 4) return;
+                const cards = area.querySelectorAll('.customer-item');
+                if(!cards.length) return;
+                const areaLeft = area.getBoundingClientRect().left;
+                let best = null, bestDx = Infinity;
+                cards.forEach(el => { const dx = Math.abs(el.getBoundingClientRect().left - areaLeft); if(dx < bestDx) { bestDx = dx; best = el; } });
+                if(!best || !best.dataset.id || best.dataset.id === lastId) return;
+                lastId = best.dataset.id;
+                const c = db.find(d => String(d.id) === String(best.dataset.id));
+                if(!c || !c.lat || !c.lng) return;
+                highlightedId = c.id;
+                map.panTo({ lat: c.lat, lng: c.lng });
+                if(window._lastDisplay) updateMapPins(window._lastDisplay);
+            }, 160);
+        }, { passive: true });
+    })();
 </script>
 </body>
 </html>
