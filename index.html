@@ -1134,28 +1134,32 @@
         const q = normalize(document.getElementById('searchInput').value);
         const filtered = db.filter(d => matchCustomer(d, q));
         const targets = activeReps.size ? filtered.filter(d => activeReps.has(d.rep_name)) : filtered;
+        const dateRe = /(19|20)\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])/;
         const byStation = {};
-        let visitedAll = 0;
+        let visitedAll = 0, noneTotal = 0, noneVisited = 0;
         targets.forEach(d => {
-            const visited = /\d{8}/.test(d.note || "");
+            const visited = dateRe.test(d.note || "");
             if(visited) visitedAll++;
             const st = (d.station || "").trim();
-            if(!st) return;
-            if(!byStation[st]) byStation[st] = { total: 0, visited: 0 };
-            byStation[st].total++;
-            if(visited) byStation[st].visited++;
+            if(!st) { noneTotal++; if(visited) noneVisited++; return; }
+            const key = normalize(st).replace(/駅$/, "");
+            if(!byStation[key]) byStation[key] = { display: st, total: 0, visited: 0 };
+            byStation[key].total++;
+            if(visited) byStation[key].visited++;
         });
-        const rows = Object.entries(byStation).map(([st, v]) => ({ st, total: v.total, visited: v.visited, unvisited: v.total - v.visited, pct: v.total ? Math.round(v.visited / v.total * 100) : 0 }));
+        const rows = Object.values(byStation).map(v => ({ st: v.display, total: v.total, visited: v.visited, unvisited: v.total - v.visited, pct: v.total ? Math.round(v.visited / v.total * 100) : 0 }));
         rows.sort((a, b) => (b.unvisited - a.unvisited) || (b.total - a.total));
         document.getElementById('coverage-summary').innerHTML = `全体：訪問済み <b>${visitedAll.toLocaleString()}</b> / ${targets.length.toLocaleString()}件`;
         const list = document.getElementById('coverage-list'); list.innerHTML = "";
-        rows.slice(0, 50).forEach(r => {
+        const addRow = (r, clickable) => {
             const div = document.createElement('div'); div.className = 'cov-row';
             div.innerHTML = `<div class="cov-head"><span class="cov-name">${r.st}</span><span class="cov-num">${r.visited}/${r.total}（${r.pct}%）</span></div><div class="cov-bar"><div class="cov-fill" style="width:${r.pct}%"></div></div>`;
-            div.onclick = () => { document.getElementById('searchInput').value = r.st; closeCoverage(); doSearch(); };
+            if(clickable) div.onclick = () => { document.getElementById('searchInput').value = r.st; closeCoverage(); doSearch(); };
             list.appendChild(div);
-        });
-        if(!rows.length) list.innerHTML = '<div style="font-size:0.85rem; color:#999;">対象の店がありません</div>';
+        };
+        rows.slice(0, 50).forEach(r => addRow(r, true));
+        if(noneTotal) addRow({ st: "（駅なし）", total: noneTotal, visited: noneVisited, pct: Math.round(noneVisited / noneTotal * 100) }, false);
+        if(!rows.length && !noneTotal) list.innerHTML = '<div style="font-size:0.85rem; color:#999;">対象の店がありません</div>';
         document.getElementById('coverageModal').style.display = 'flex';
     }
     function closeCoverage() { document.getElementById('coverageModal').style.display = 'none'; }
