@@ -1167,6 +1167,30 @@
             targets.forEach(d => { d._nd = (d.lat && d.lng) ? google.maps.geometry.spherical.computeDistanceBetween(_pt, new google.maps.LatLng(d.lat, d.lng)) : 1e12; });
             targets.sort((a, b) => a._nd - b._nd);
         }
+        if (map && window.google && google.maps && google.maps.geometry) {
+            const CHAIN_MAX = 300;
+            const pool = targets.slice(0, CHAIN_MAX).filter(d => d.lat && d.lng);
+            if (pool.length > 1) {
+                const poolSet = new Set(pool);
+                const tail = targets.filter(d => !poolSet.has(d));
+                const chained = [];
+                const used = new Set();
+                let cur = pool[0];
+                chained.push(cur); used.add(cur);
+                const cosLat = Math.cos(cur.lat * Math.PI / 180);
+                while (chained.length < pool.length) {
+                    let best = null, bestD = Infinity;
+                    for (const d of pool) {
+                        if (used.has(d)) continue;
+                        const dx = (d.lng - cur.lng) * cosLat, dy = d.lat - cur.lat;
+                        const dd = dx * dx + dy * dy;
+                        if (dd < bestD) { bestD = dd; best = d; }
+                    }
+                    chained.push(best); used.add(best); cur = best;
+                }
+                targets = chained.concat(tail);
+            }
+        }
         const displayTargets = targets;
         window._lastDisplay = targets.slice(0, currentLimit);
         updateMapPins(window._lastDisplay);
