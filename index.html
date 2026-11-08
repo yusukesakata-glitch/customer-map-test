@@ -1167,6 +1167,7 @@
                     if(cardEl) {
                         cardEl.classList.add('highlighted');
                         const aR = area.getBoundingClientRect(), cR = cardEl.getBoundingClientRect();
+                        window._suppressSettleUntil = Date.now() + 1600;
                         area.scrollTo({ left: area.scrollLeft + (cR.left - aR.left) - (aR.width - cR.width) / 2, behavior: 'smooth' });
                     }
                 });
@@ -1563,6 +1564,7 @@
         document.querySelectorAll('.customer-item.highlighted').forEach(x => x.classList.remove('highlighted'));
         el.classList.add('highlighted');
         const aR2 = area.getBoundingClientRect(), cR2 = el.getBoundingClientRect();
+        window._suppressSettleUntil = Date.now() + 1600;
         area.scrollTo({ left: area.scrollLeft + (cR2.left - aR2.left) - (aR2.width - cR2.width) / 2, behavior: 'auto' });
     }
 
@@ -1950,6 +1952,7 @@
         if(cardEl) {
             cardEl.classList.add('highlighted');
             const aR = area.getBoundingClientRect(), cR = cardEl.getBoundingClientRect();
+            window._suppressSettleUntil = Date.now() + 1600;
             area.scrollTo({ left: area.scrollLeft + (cR.left - aR.left) - (aR.width - cR.width) / 2, behavior: 'smooth' });
         }
     }
@@ -2074,9 +2077,20 @@
         const area = document.getElementById('result-area');
         if(!area) return;
         let timer = null;
+        let touching = false;
+        area.addEventListener('pointerdown', () => { touching = true; });
+        area.addEventListener('pointerup', () => { touching = false; });
+        area.addEventListener('pointercancel', () => { touching = false; });
         area.addEventListener('scroll', () => {
             clearTimeout(timer);
             timer = setTimeout(() => {
+                if(Date.now() < (window._suppressSettleUntil || 0)) return;
+                if(touching) return;
+                const sl0 = area.scrollLeft;
+                setTimeout(() => {
+                if(area.scrollLeft !== sl0) return;
+                if(Date.now() < (window._suppressSettleUntil || 0)) return;
+                if(touching) return;
                 const cards = area.querySelectorAll('.customer-item');
                 if(!cards.length) return;
                 const areaLeft = area.getBoundingClientRect().left;
@@ -2105,6 +2119,7 @@
                 best.classList.add('highlighted');
                 if(window._lastDisplay) { window._pinsNoFit = true; updateMapPins(window._lastDisplay); }
                 if(map && c.lat && c.lng) { window._syncSuppressUntil = Date.now() + 900; releaseFollow(); map.panTo({ lat: c.lat, lng: c.lng }); }
+                }, 160);
             }, 220);
         }, { passive: true });
     })();
