@@ -493,7 +493,14 @@
         .town-fill { height: 8px; border-radius: 4px; }
         @media (min-width: 900px) {
             .right-section > .btn-current-loc { position: absolute; top: 64px; right: 12px; bottom: auto; margin: 0; align-self: auto; z-index: 45; }
-            .customer-item { height: 232px; }
+            #result-area { align-items: stretch; }
+            .customer-item { height: auto; }
+            .customer-item .info-main { height: 47px; overflow: hidden; }
+            .customer-item .card-tel { height: 25px; }
+            .customer-item .card-meta { height: 19px; white-space: nowrap; overflow: hidden; }
+            .customer-item .card-addr-row { height: 37px; overflow: hidden; }
+            .customer-item .card-addr-row .btn-copy { align-self: flex-start; margin-top: 2px; }
+            .customer-item .note-box { height: 31px; }
         }
     </style>
 </head>
