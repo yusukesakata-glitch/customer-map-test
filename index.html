@@ -1562,31 +1562,46 @@
         n = n.replace(/(本店|支店|駅前店|店)$/, "");
         return n;
     }
+    let dupIndex = null, dupIndexDb = null;
+    function buildDupIndex() {
+        const byTown = new Map(); const phones = new Set();
+        db.forEach(c => {
+            const t = digitsOf(c.tel); if(t) phones.add(t);
+            const cp = addrParts((c.address || "") + (c.building || ""));
+            if(!cp.town) return;
+            if(!byTown.has(cp.town)) byTown.set(cp.town, []);
+            byTown.get(cp.town).push({ cp: cp, cores: [coreName(c.name), coreName(splitName(c).shop || "")], norms: [normalize(c.name), normalize(splitName(c).shop || "")] });
+        });
+        dupIndex = { byTown: byTown, phones: phones }; dupIndexDb = db;
+    }
     function isProspectDup(p) {
+        if(!dupIndex || dupIndexDb !== db) buildDupIndex();
         const pn = normalize(p.name);
         if(!pn) return false;
         const pt = digitsOf(p.tel);
+        if(pt && dupIndex.phones.has(pt)) return true;
         const pp = addrParts(p.address);
+        if(!pp.town) return false;
         const pcore = coreName(p.name);
-        return db.some(c => {
-            // 電話番号が一致すれば同一店（名前の表記ゆれは問わない）
-            if(pt && digitsOf(c.tel) === pt) return true;
-            const cp = addrParts((c.address || "") + (c.building || ""));
-            const sameTown = !!(pp.town && cp.town && pp.town === cp.town);
-            if(!sameTown) return false;
-            // 住所ベース：町名＋番地＋階＋ビル名まで一致すれば同一店とみなす
+        const list = dupIndex.byTown.get(pp.town) || [];
+        return list.some(e => {
+            const cp = e.cp;
             if(pp.banchi && pp.banchi === cp.banchi && pp.floor && pp.floor === cp.floor && pp.building && cp.building && (pp.building === cp.building || pp.building.includes(cp.building) || cp.building.includes(pp.building))) return true;
-            // 店名のコア部分（業種語を除いた屋号）が一致／包含し、町名も一致
-            const ccores = [coreName(c.name), coreName(splitName(c).shop || "")];
-            if(pcore.length >= 2 && ccores.some(cc => cc.length >= 2 && (pcore === cc || cc.includes(pcore) || pcore.includes(cc)))) return true;
-            // 屋号が1文字等で短い場合は、番地まで一致すれば同一店とみなす
-            if(pcore && pp.banchi && pp.banchi === cp.banchi && ccores.some(cc => cc && cc === pcore)) return true;
-            // 店名の完全一致＋町名一致（従来判定）
-            if(normalize(c.name) === pn || normalize(splitName(c).shop) === pn) return true;
+            if(pcore.length >= 2 && e.cores.some(cc => cc.length >= 2 && (pcore === cc || cc.includes(pcore) || pcore.includes(cc)))) return true;
+            if(pcore && pp.banchi && pp.banchi === cp.banchi && e.cores.some(cc => cc && cc === pcore)) return true;
+            if(e.norms.some(n => n === pn)) return true;
             return false;
         });
     }
-    function prospectCandidates() { const hidden = prospectHiddenSet(); return prospects.filter(p => !hidden.has(p.id) && !isProspectDup(p)); }
+    let candVer = 0, candCache = null, candCacheKey = "";
+    function prospectCandidates() {
+        const hidden = prospectHiddenSet();
+        const key = db.length + "|" + (db[0] ? db[0].id : "") + "|" + prospects.length + "|" + hidden.size + "|" + candVer;
+        if(candCache && candCacheKey === key) return candCache;
+        candCache = prospects.filter(p => !hidden.has(p.id) && !isProspectDup(p));
+        candCacheKey = key;
+        return candCache;
+    }
     function loadProspects() {
         fetch('prospects.json', { cache: 'no-store' }).then(r => { if(!r.ok) throw new Error('prospects load failed'); return r.json(); }).then(list => {
             if(!Array.isArray(list)) return;
@@ -1597,7 +1612,7 @@
                 const cache = JSON.parse(localStorage.getItem('map_prospect_geo') || "{}");
                 prospects.forEach(p => { const g = cache[p.id]; if(g && (p.lat == null || p.lng == null)) { p.lat = g.lat; p.lng = g.lng; } });
             } catch(e) {}
-            prospectsLoaded = true;
+            candVer++; prospectsLoaded = true;
             syncProspectBar();
             render();
             maybeGeocodeProspects();
@@ -1615,23 +1630,30 @@
         const targets = prospectDisplayList().filter(p => p.lat == null || p.lng == null).slice(0, 60);
         if(!targets.length) return;
         prospectGeocoding = true;
+        let geoDone = 0;
         for(const p of targets) {
             try {
                 const coords = await new Promise((res, rej) => geocoder.geocode({ address: p.address }, (r, s) => s === 'OK' ? res({ lat: r[0].geometry.location.lat(), lng: r[0].geometry.location.lng() }) : rej(s)));
                 p.lat = coords.lat; p.lng = coords.lng;
                 saveProspectGeo(p);
-                renderProspectPins();
+                geoDone++;
+                if(geoDone % 15 === 0) renderProspectPins();
             } catch(e) {}
             await new Promise(r => setTimeout(r, 400));
         }
+        renderProspectPins();
         prospectGeocoding = false;
     }
+    let prospectPinSig = "";
     function renderProspectPins() {
         if(!map || !AdvancedMarkerElement) return;
-        prospectMarkers.forEach(m => m.setMap(null)); prospectMarkers = [];
-        if(prospectMode === 'off') return;
+        if(prospectMode === 'off') { if(prospectMarkers.length) { prospectMarkers.forEach(m => m.setMap(null)); prospectMarkers = []; } prospectPinSig = "off"; return; }
         let pinList = prospectDisplayList().slice(0, 300);
         if(highlightedProspectId && !pinList.some(p => p.id === highlightedProspectId)) { const hp = prospects.find(p => p.id === highlightedProspectId); if(hp) pinList = pinList.concat(hp); }
+        const sig = highlightedProspectId + "|" + pinList.map(p => p.id + "@" + (p.lat == null ? "" : p.lat) + "," + (p.lng == null ? "" : p.lng)).join(";");
+        if(sig === prospectPinSig) return;
+        prospectPinSig = sig;
+        prospectMarkers.forEach(m => m.setMap(null)); prospectMarkers = [];
         pinList.forEach(p => {
             if(p.lat == null || p.lng == null) return;
             const sel = p.id === highlightedProspectId;
@@ -1740,7 +1762,7 @@
         render();
     }
     function restoreHiddenProspects() {
-        saveProspectHidden(new Set());
+        saveProspectHidden(new Set()); candVer++;
         syncProspectBar();
         render();
     }
@@ -1790,14 +1812,14 @@
         const merged = Object.assign({}, base, override);
         if(addrChanged) { merged.lat = null; merged.lng = null; clearProspectGeo(id); }
         else { merged.lat = prospects[idx].lat; merged.lng = prospects[idx].lng; }
-        prospects[idx] = merged;
+        prospects[idx] = merged; candVer++;
         closeProspectModal();
         render();
         maybeGeocodeProspects();
     }
     function hideProspect() {
         const id = document.getElementById('pedit-id').value;
-        const set = prospectHiddenSet(); set.add(id); saveProspectHidden(set);
+        const set = prospectHiddenSet(); set.add(id); saveProspectHidden(set); candVer++;
         if(highlightedProspectId === id) highlightedProspectId = null;
         closeProspectModal();
         syncProspectBar();
@@ -1805,7 +1827,7 @@
     }
     function resetProspectEdit() {
         const id = document.getElementById('pedit-id').value;
-        const edits = loadProspectEdits(); delete edits[id]; saveProspectEdits(edits);
+        const edits = loadProspectEdits(); delete edits[id]; saveProspectEdits(edits); candVer++;
         const idx = prospects.findIndex(x => x.id === id);
         const base = prospectsRaw.find(x => x.id === id);
         if(idx !== -1 && base) {
