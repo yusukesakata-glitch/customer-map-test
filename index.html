@@ -1665,8 +1665,22 @@
             <button type="button" class="action-btn" onclick="openProspectEdit('${p.id}')">編集</button>
             ${p.tel ? `<a href="tel:${p.tel}" class="action-btn">発信</a>` : ""}
             <a href="${dirUrl}" target="_blank" rel="noopener" class="action-btn">経路</a>
+            <button type="button" class="action-btn" onclick="flyToProspect('${p.id}')">地図</button>
         </div>`;
+        div.addEventListener('click', (e) => { if(e.target.closest('a,button')) return; flyToProspect(p.id); });
         return div;
+    }
+    function flyToProspect(id) {
+        const p = prospects.find(x => x.id === id);
+        if(!p || !map) return;
+        highlightedProspectId = id;
+        highlightedId = null;
+        document.querySelectorAll('.customer-item.highlighted').forEach(el => el.classList.remove('highlighted'));
+        const cardEl = document.querySelector('.prospect-item[data-pid="' + id + '"]');
+        if(cardEl) cardEl.classList.add('highlighted');
+        renderProspectPins();
+        if(p.lat != null && p.lng != null) { releaseFollow(); map.setZoom(17); map.panTo({ lat: p.lat, lng: p.lng }); }
+        else maybeGeocodeProspects();
     }
     function appendProspectCards(area) {
         if(prospectMode === 'off') return;
@@ -1796,10 +1810,25 @@
                 const areaLeft = area.getBoundingClientRect().left;
                 let best = null, bestDx = Infinity;
                 cards.forEach(el => { const dx = Math.abs(el.getBoundingClientRect().left - areaLeft); if(dx < bestDx) { bestDx = dx; best = el; } });
-                if(!best || !best.dataset.id || String(best.dataset.id) === String(highlightedId)) return;
+                if(!best) return;
+                if(best.dataset.pid) {
+                    const pid = best.dataset.pid;
+                    if(pid === String(highlightedProspectId)) return;
+                    const pr = prospects.find(x => x.id === pid);
+                    if(!pr) return;
+                    highlightedProspectId = pid;
+                    highlightedId = null;
+                    document.querySelectorAll('.customer-item.highlighted').forEach(el => el.classList.remove('highlighted'));
+                    best.classList.add('highlighted');
+                    renderProspectPins();
+                    if(map && pr.lat != null && pr.lng != null) { window._syncSuppressUntil = Date.now() + 900; releaseFollow(); map.panTo({ lat: pr.lat, lng: pr.lng }); }
+                    return;
+                }
+                if(!best.dataset.id || String(best.dataset.id) === String(highlightedId)) return;
                 const c = db.find(d => String(d.id) === String(best.dataset.id));
                 if(!c) return;
                 highlightedId = c.id;
+                highlightedProspectId = null;
                 document.querySelectorAll('.customer-item.highlighted').forEach(el => el.classList.remove('highlighted'));
                 best.classList.add('highlighted');
                 if(window._lastDisplay) { window._pinsNoFit = true; updateMapPins(window._lastDisplay); }
