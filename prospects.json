@@ -76,34 +76,6 @@
   "lng": null
  },
  {
-  "id": "blanc-motion-f8a85",
-  "name": "BLANC MOTION ★",
-  "genre": "キャバクラ",
-  "address": "神奈川県川崎市川崎区砂子2-3-12 第40東京ビルB1F",
-  "station": "川崎駅",
-  "openLabel": "2026年9月 GRAND OPEN",
-  "tel": "",
-  "source": "夜遊びショコラ／ポケパラ",
-  "sourceUrl": "",
-  "status": "listed",
-  "lat": null,
-  "lng": null
- },
- {
-  "id": "muah-lounge-e994c",
-  "name": "MUAH lounge ★",
-  "genre": "キャバクラ",
-  "address": "神奈川県川崎市川崎区砂子2-6-19 林ビル7F",
-  "station": "川崎駅",
-  "openLabel": "2026-09-24 GRAND OPEN",
-  "tel": "044-222-2070",
-  "source": "夜遊びショコラ／ポケパラ",
-  "sourceUrl": "",
-  "status": "listed",
-  "lat": null,
-  "lng": null
- },
- {
   "id": "club-79f1a",
   "name": "club 美蘭",
   "genre": "キャバクラ",
@@ -160,20 +132,6 @@
   "lng": null
  },
  {
-  "id": "club-piano-cbc3a",
-  "name": "CLUB PIANO ※",
-  "genre": "キャバクラ",
-  "address": "神奈川県川崎市川崎区砂子2-5-21 第39東京ビル5F",
-  "station": "川崎駅",
-  "openLabel": "",
-  "tel": "",
-  "source": "夜遊びショコラ／ポケパラ",
-  "sourceUrl": "",
-  "status": "listed",
-  "lat": null,
-  "lng": null
- },
- {
   "id": "club-mugen-499ee",
   "name": "CLUB MUGEN",
   "genre": "キャバクラ",
@@ -216,8 +174,8 @@
   "lng": null
  },
  {
-  "id": "clubroi-f4d29",
-  "name": "ClubRoi ※",
+  "id": "clubroi-40b79",
+  "name": "ClubRoi",
   "genre": "キャバクラ",
   "address": "神奈川県川崎市川崎区砂子2-5-22 高木15ビル2F",
   "station": "川崎駅",
@@ -230,8 +188,8 @@
   "lng": null
  },
  {
-  "id": "zanarkandclub-kawasaki-a3000",
-  "name": "ZanarkandClub KAWASAKI ※",
+  "id": "zanarkandclub-kawasaki-b1c63",
+  "name": "ZanarkandClub KAWASAKI",
   "genre": "キャバクラ",
   "address": "神奈川県川崎市川崎区砂子2-5-22 高木15ビル2F",
   "station": "川崎駅",
@@ -328,8 +286,8 @@
   "lng": null
  },
  {
-  "id": "girl-s-bar-black-pink-0a8ed",
-  "name": "Girl's Bar BLACK PINK ※",
+  "id": "girl-s-bar-black-pink-c4ec6",
+  "name": "Girl's Bar BLACK PINK",
   "genre": "ガールズバー",
   "address": "神奈川県川崎市川崎区砂子2-5-25 炙りビル1F",
   "station": "川崎駅",
@@ -384,8 +342,8 @@
   "lng": null
  },
  {
-  "id": "kp-bar-25241",
-  "name": "KP BAR ※",
+  "id": "kp-bar-ba0d9",
+  "name": "KP BAR",
   "genre": "ガールズバー",
   "address": "神奈川県川崎市川崎区砂子2-5-25 炙りビル1F",
   "station": "川崎駅",
@@ -462,20 +420,6 @@
   "openLabel": "",
   "tel": "",
   "source": "夜遊びショコラ",
-  "sourceUrl": "",
-  "status": "listed",
-  "lat": null,
-  "lng": null
- },
- {
-  "id": "myu-myu-fa577",
-  "name": "Myu Myu ★",
-  "genre": "コンカフェ",
-  "address": "神奈川県川崎市川崎区砂子2-9-12 あさひビルB1F",
-  "station": "川崎駅",
-  "openLabel": "2026年10月 GRAND OPEN",
-  "tel": "044-742-9330",
-  "source": "夜遊びショコラ／ポケパラ／ルライン",
   "sourceUrl": "",
   "status": "listed",
   "lat": null,
@@ -594,8 +538,8 @@
   "lng": null
  },
  {
-  "id": "girl-s-bar-chip-9fe4f",
-  "name": "Girl's bar Chip ※",
+  "id": "girl-s-bar-chip-d75ff",
+  "name": "Girl's bar Chip",
   "genre": "ガールズバー",
   "address": "神奈川県川崎市川崎区東田町3-31 JSJビル5F",
   "station": "川崎駅",
@@ -636,8 +580,8 @@
   "lng": null
  },
  {
-  "id": "girls-bar-teddy-20248",
-  "name": "Girls Bar Teddy ※",
+  "id": "girls-bar-teddy-f8342",
+  "name": "Girls Bar Teddy",
   "genre": "ガールズバー",
   "address": "神奈川県川崎市川崎区東田町3-31 JSJビル5F",
   "station": "川崎駅",
@@ -846,8 +790,8 @@
   "lng": null
  },
  {
-  "id": "heart-e31ef",
-  "name": "コンカフェHEART ※",
+  "id": "heart-f7238",
+  "name": "コンカフェHEART",
   "genre": "コンカフェ",
   "address": "神奈川県川崎市川崎区東田町2-8 第2RTビル4F",
   "station": "川崎駅",
@@ -902,8 +846,8 @@
   "lng": null
  },
  {
-  "id": "yuruche-322be",
-  "name": "YURUCHE ※",
+  "id": "yuruche-a8f62",
+  "name": "YURUCHE",
   "genre": "コンカフェ",
   "address": "神奈川県川崎市川崎区小川町13-20",
   "station": "川崎駅",
