@@ -167,6 +167,9 @@
             border-radius: 999px; cursor: pointer; border: 1px solid #dbe4ec;
             transition: all 0.2s; color: var(--text-sub);
         }
+        .stats-item { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+        .stats-item.pin-fixed { position: sticky; left: 0; z-index: 3; background: #fdf3d3; border-color: var(--gold); color: var(--navy-dark); box-shadow: 8px 0 10px -6px rgba(31, 58, 95, 0.35); }
+        .stats-item.pressing { transform: scale(0.94); background: #f3d98b; }
         .stats-item.selected { background: var(--navy); color: #fff; border-color: var(--navy); }
         .stats-count { font-weight: 800; margin-left: 5px; }
 
@@ -1310,6 +1313,25 @@
     }
     function resetAndRender() { render(); }
     function changeLimit() { currentLimit = document.getElementById('limitSelect').value === 'ALL' ? db.length : parseInt(document.getElementById('limitSelect').value); render(); }
+
+    function setMyPin(name) {
+        if (targetReps.length === 1 && targetReps[0] === name) targetReps = [];
+        else targetReps = [name];
+        localStorage.setItem('map_target_reps_json', JSON.stringify(targetReps));
+        render();
+    }
+    function attachLongPress(el, name) {
+        let timer = null, sx = 0, sy = 0;
+        el.addEventListener('pointerdown', (e) => {
+            sx = e.clientX; sy = e.clientY; el.classList.add('pressing');
+            timer = setTimeout(() => { timer = null; window._lpAt = Date.now(); el.classList.remove('pressing'); setMyPin(name); }, 550);
+        });
+        const cancel = () => { if (timer) { clearTimeout(timer); timer = null; } el.classList.remove('pressing'); };
+        el.addEventListener('pointerup', cancel);
+        el.addEventListener('pointercancel', cancel);
+        el.addEventListener('pointermove', (e) => { if (Math.abs(e.clientX - sx) > 12 || Math.abs(e.clientY - sy) > 12) cancel(); });
+        el.addEventListener('contextmenu', (e) => e.preventDefault());
+    }
     function toggleRep(name) { if(activeReps.has(name)) activeReps.delete(name); else activeReps.add(name); render(); }
 
     function render() {
@@ -1333,10 +1355,15 @@
 
         const counts = {}; filtered.forEach(d => counts[d.rep_name] = (counts[d.rep_name] || 0) + 1);
         const detailBox = document.getElementById('stats-detail'); detailBox.innerHTML = "";
-        Object.keys(counts).sort().forEach(name => {
-            const div = document.createElement('div'); div.className = `stats-item ${activeReps.has(name)?'selected':''}`;
+        const _pinFirst = targetReps.length ? targetReps[0] : null;
+        const _names = Object.keys(counts).sort();
+        if (_pinFirst && counts[_pinFirst] !== undefined) { _names.splice(_names.indexOf(_pinFirst), 1); _names.unshift(_pinFirst); }
+        _names.forEach(name => {
+            const div = document.createElement('div'); div.className = `stats-item ${activeReps.has(name)?'selected':''}${name===_pinFirst?' pin-fixed':''}`;
             div.innerHTML = `${name} <span class="stats-count">${counts[name]}</span>`;
-            div.onclick = () => toggleRep(name); detailBox.appendChild(div);
+            div.onclick = () => { if (Date.now() - (window._lpAt || 0) < 600) return; toggleRep(name); };
+            attachLongPress(div, name);
+            detailBox.appendChild(div);
         });
 
         let targets = activeReps.size ? filtered.filter(d => activeReps.has(d.rep_name)) : filtered;
