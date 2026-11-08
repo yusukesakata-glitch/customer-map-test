@@ -1159,8 +1159,8 @@
                     document.querySelectorAll('.customer-item.highlighted').forEach(el => el.classList.remove('highlighted'));
                     if(cardEl) {
                         cardEl.classList.add('highlighted');
-                        const delta = cardEl.getBoundingClientRect().left - area.getBoundingClientRect().left;
-                        area.scrollTo({ left: area.scrollLeft + delta - 10, behavior: 'smooth' });
+                        const aR = area.getBoundingClientRect(), cR = cardEl.getBoundingClientRect();
+                        area.scrollTo({ left: area.scrollLeft + (cR.left - aR.left) - (aR.width - cR.width) / 2, behavior: 'smooth' });
                     }
                 });
                 e.marker = m;
