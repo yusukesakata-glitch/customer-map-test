@@ -463,6 +463,22 @@
     
         .cov-right { display: flex; align-items: center; gap: 6px; }
         .cov-go { color: #9db8cc; font-size: 1.15rem; font-weight: 700; line-height: 1; }
+
+        /* 見込み店レイヤー */
+        .prospect-bar { position: absolute; left: 10px; bottom: 264px; z-index: 41; display: flex; gap: 6px; }
+        .layer-pill {
+            background: rgba(255,255,255,0.96); border: 1px solid #d8e2ec; color: #536b7d;
+            border-radius: 999px; padding: 7px 14px; min-height: 36px;
+            font-size: 0.78rem; font-weight: 700; cursor: pointer; font-family: inherit;
+            box-shadow: 0 2px 8px rgba(21,42,71,0.10);
+            display: inline-flex; align-items: center; gap: 6px;
+        }
+        .layer-pill .pdot { width: 9px; height: 9px; border-radius: 50%; background: #7c8b9a; flex: none; }
+        .layer-pill.on { background: var(--navy); border-color: var(--navy); color: #fff; }
+        .layer-pill.on .pdot { background: #fff; }
+        .customer-item .tag-prospect { background: #eef1f4 !important; border: 1px solid #d5dde4 !important; color: #5b6b7a !important; font-weight: 700; }
+        .customer-item .tag-permit { background: #fdf6e0 !important; border: 1px solid #e8d48b !important; color: #8a6d1f !important; font-weight: 700; }
+        .prospect-src a { color: #3868a8; text-decoration: none; font-weight: 600; }
     </style>
 </head>
 <body>
@@ -473,6 +489,10 @@
         <div class="map-wrapper">
             <div id="google-map-view"></div>
             <div id="map-placeholder-msg">マップ読込中...</div>
+            <div class="prospect-bar">
+                <button class="layer-pill on" id="prospectToggle" onclick="toggleProspectLayer()"><span class="pdot"></span>見込み店</button>
+                <button class="layer-pill" id="prospectOnlyToggle" onclick="toggleProspectOnly()">見込みのみ</button>
+            </div>
         </div>
     </div>
 
@@ -650,7 +670,16 @@
     let db = [];
     let map, geocoder, AdvancedMarkerElement;
     let markers = [];
-    let infoWindow; 
+    let infoWindow;
+
+    /* 見込み店レイヤーの状態 */
+    let prospects = [];
+    let prospectMarkers = [];
+    let prospectLayerOn = true;
+    let prospectOnlyMode = false;
+    let highlightedProspectId = null;
+    let prospectsLoaded = false;
+    let prospectGeocoding = false;
 
     window.gm_authFailure = function() {
         alert("APIキーエラーです。\n設定を確認してください。");
@@ -680,8 +709,9 @@
         } else {
             document.getElementById('map-placeholder-msg').innerHTML = "設定からAPIキーを<br>設定してください";
         }
+        loadProspects();
         updateStorageInfo();
-        
+
     };
 
 
@@ -799,11 +829,13 @@
                 map.addListener('idle', () => { const wasPin = isPinClick; isPinClick = false; if(!mapSyncMode || wasPin) return; updateMapPins(window._lastDisplay || []); });
                 map.addListener('dragstart', () => { if(watchId) { isTrackingLocked=false; nearbySort=null; updateGpsBtnState(); } });
                 map.addListener('click', () => {
-                    if (highlightedId) { highlightedId = null; document.querySelectorAll('.customer-item.highlighted').forEach(el => el.classList.remove('highlighted')); updateMapPins(window._lastDisplay || []); }
+                    if (highlightedId || highlightedProspectId) { highlightedId = null; highlightedProspectId = null; document.querySelectorAll('.customer-item.highlighted').forEach(el => el.classList.remove('highlighted')); updateMapPins(window._lastDisplay || []); }
                     if(infoWindow) infoWindow.close();
                 });
                 msgEl.style.display = 'none';
                 if(db.length > 0) render();
+                renderProspectPins();
+                maybeGeocodeProspects();
             } catch(e) {
                 _initPromise = null;
                 msgEl.style.display = '';
@@ -1021,6 +1053,7 @@
         }
 
         if(highlightedId && !pinsToShow.some(c => c.id === highlightedId)) { const hc = db.find(c => c.id === highlightedId && c.lat && c.lng); if(hc) pinsToShow = pinsToShow.concat(hc); }
+        if(prospectOnlyMode) pinsToShow = [];
         const grouped = {};
         pinsToShow.forEach(c => {
             if(c.lat && c.lng) {
@@ -1076,6 +1109,7 @@
         });
         if(hasPin && !mapSyncMode && !watchId && !window._pinsNoFit) map.fitBounds(bounds);
         window._pinsNoFit = false;
+        renderProspectPins();
     }
 
     function getPrefecture(a) { const m=a.match(/(...??[都道府県])/); return m?m[1]:"その他"; }
@@ -1306,8 +1340,9 @@
             area.appendChild(div);
         };
         let _shown = 0;
-        const _take = () => { const part = displayTargets.slice(_shown, _shown + 60); part.forEach(buildCard); _shown += part.length; };
+        const _take = () => { if(prospectOnlyMode) return; const part = displayTargets.slice(_shown, _shown + 60); part.forEach(buildCard); _shown += part.length; };
         _take();
+        appendProspectCards(area);
         window._appendCards = _take;
     }
 
@@ -1449,6 +1484,140 @@
     }
     function uploadData(i) { const f=i.files[0]; i.value=""; if(!f)return; const _fd = f.lastModified ? new Date(f.lastModified) : null; const _fds = _fd ? `${_fd.getFullYear()}-${String(_fd.getMonth()+1).padStart(2,'0')}-${String(_fd.getDate()).padStart(2,'0')}` : ""; const r=new FileReader(); r.onload=e=>{ try { const incoming = JSON.parse(e.target.result); if(!Array.isArray(incoming)) { alert("読み込み失敗"); return; } if(confirm(`JSONファイルを読み込みますか？\nデータ ${incoming.length.toLocaleString()} 件${_fds ? `／ファイル日付 ${_fds}` : ""}`)) { localStorage.setItem('map_data_info', JSON.stringify({ count: incoming.filter(d => d.credit !== '現存せず').length, fileDate: _fds })); const noteByCode = {}; db.forEach(d => { if(d.r_code && (d.note || "").trim()) noteByCode[d.r_code] = d.note; }); let kept = 0; incoming.forEach(d => { if(d.r_code && !(d.note || "").trim() && noteByCode[d.r_code]) { d.note = noteByCode[d.r_code]; kept++; } }); const droppedGone = incoming.filter(d => d.credit === '現存せず').length; db = incoming.filter(d => d.credit !== '現存せず'); saveDB(); populateFilters(); resetAndRender(); updateStorageInfo(); alert(`読み込み完了（メモ ${kept} 件を引き継ぎました${droppedGone ? `／現存せず ${droppedGone} 件を除外` : ""}）`); } } catch(z) { alert("読み込み失敗"); } }; r.readAsText(f); }
     function saveDB() { localStorage.setItem(DB_NAME, JSON.stringify(db)); }
+
+    /* ===== 見込み店レイヤー ===== */
+    function digitsOf(s) { return (s || "").replace(/\D/g, ""); }
+    function addrAreaKey(addr) {
+        if(!addr) return "";
+        const a = String(addr).replace(/^.+?(都|道|府|県)/, "");
+        const m = a.match(/^[^0-9０-９]+/);
+        return m ? normalize(m[0]) : "";
+    }
+    function isProspectDup(p) {
+        const pn = normalize(p.name);
+        if(!pn) return false;
+        const pt = digitsOf(p.tel), pa = addrAreaKey(p.address);
+        return db.some(c => {
+            if(normalize(c.name) !== pn && normalize(splitName(c).shop) !== pn) return false;
+            if(pt && digitsOf(c.tel) === pt) return true;
+            const ca = addrAreaKey(c.address);
+            return !!(pa && ca && pa === ca);
+        });
+    }
+    function prospectCandidates() { return prospects.filter(p => !isProspectDup(p)); }
+    function loadProspects() {
+        fetch('prospects.json', { cache: 'no-store' }).then(r => { if(!r.ok) throw new Error('prospects load failed'); return r.json(); }).then(list => {
+            if(!Array.isArray(list)) return;
+            prospects = list;
+            try {
+                const cache = JSON.parse(localStorage.getItem('map_prospect_geo') || "{}");
+                prospects.forEach(p => { const g = cache[p.id]; if(g && (p.lat == null || p.lng == null)) { p.lat = g.lat; p.lng = g.lng; } });
+            } catch(e) {}
+            prospectsLoaded = true;
+            render();
+            maybeGeocodeProspects();
+        }).catch(() => {});
+    }
+    function saveProspectGeo(p) {
+        try {
+            const cache = JSON.parse(localStorage.getItem('map_prospect_geo') || "{}");
+            cache[p.id] = { lat: p.lat, lng: p.lng };
+            localStorage.setItem('map_prospect_geo', JSON.stringify(cache));
+        } catch(e) {}
+    }
+    async function maybeGeocodeProspects() {
+        if(prospectGeocoding || !prospectsLoaded || !geocoder) return;
+        const targets = prospectCandidates().filter(p => p.lat == null || p.lng == null);
+        if(!targets.length) return;
+        prospectGeocoding = true;
+        for(const p of targets) {
+            try {
+                const coords = await new Promise((res, rej) => geocoder.geocode({ address: p.address }, (r, s) => s === 'OK' ? res({ lat: r[0].geometry.location.lat(), lng: r[0].geometry.location.lng() }) : rej(s)));
+                p.lat = coords.lat; p.lng = coords.lng;
+                saveProspectGeo(p);
+                renderProspectPins();
+            } catch(e) {}
+            await new Promise(r => setTimeout(r, 400));
+        }
+        prospectGeocoding = false;
+    }
+    function renderProspectPins() {
+        if(!map || !AdvancedMarkerElement) return;
+        prospectMarkers.forEach(m => m.setMap(null)); prospectMarkers = [];
+        if(!prospectLayerOn) return;
+        prospectCandidates().forEach(p => {
+            if(p.lat == null || p.lng == null) return;
+            const sel = p.id === highlightedProspectId;
+            const pinView = document.createElement("div");
+            pinView.style.width = sel ? "30px" : "22px";
+            pinView.style.height = pinView.style.width;
+            pinView.style.backgroundColor = sel ? "#FFD60A" : "#7c8b9a";
+            pinView.style.borderRadius = "50% 50% 50% 0"; pinView.style.transform = "rotate(-45deg)"; pinView.style.border = "2.5px solid white"; pinView.style.boxShadow = "0 2px 5px rgba(0,0,0,0.2)";
+            const m = new AdvancedMarkerElement({ position: { lat: p.lat, lng: p.lng }, map: map, content: pinView, zIndex: sel ? 900 : 50 });
+            m.addListener("click", () => { isPinClick = true; selectProspect(p.id); });
+            prospectMarkers.push(m);
+        });
+    }
+    function buildProspectCard(p) {
+        const div = document.createElement('div');
+        div.className = 'customer-item prospect-item'; div.dataset.pid = p.id;
+        if(p.id === highlightedProspectId) div.classList.add('highlighted');
+        const dirUrl = "https://www.google.com/maps/dir/?api=1&destination=" + ((p.lat != null && p.lng != null) ? (p.lat + ',' + p.lng) : encodeURIComponent(p.address));
+        div.innerHTML = `<div style="flex:1;">
+            <div class="info-main no-company">
+                <span class="status-dot" style="background:#7c8b9a;"></span>
+                <span class="name-lines"><span class="shop-name">${p.name}</span></span>
+            </div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:2px;">
+                <span class="tag tag-prospect">未登録</span>
+                ${p.status === 'permit' ? '<span class="tag tag-permit">開店未確認（許可ベース）</span>' : ''}
+            </div>
+            <div class="card-meta">${p.genre ? `<span>${p.genre}</span>` : ""}${p.station ? `<span class="meta-sep"></span><span>${p.station}</span>` : ""}</div>
+            <div class="card-addr-row"><span class="card-addr">${p.address}</span></div>
+            ${p.openLabel ? `<div class="info-sub" style="margin-top:5px;">${p.openLabel}</div>` : ""}
+            ${p.source ? `<div class="info-sub prospect-src">出典：${p.sourceUrl ? `<a href="${p.sourceUrl}" target="_blank" rel="noopener">${p.source}</a>` : p.source}</div>` : ""}
+        </div>
+        <div class="action-area">
+            ${p.tel ? `<a href="tel:${p.tel}" class="action-btn">発信</a>` : ""}
+            <a href="${dirUrl}" target="_blank" rel="noopener" class="action-btn">経路</a>
+        </div>`;
+        return div;
+    }
+    function appendProspectCards(area) {
+        if(!prospectLayerOn) return;
+        prospectCandidates().forEach(p => area.appendChild(buildProspectCard(p)));
+    }
+    function selectProspect(id) {
+        highlightedProspectId = id;
+        highlightedId = null;
+        updateMapPins(window._lastDisplay || []);
+        const area = document.getElementById('result-area');
+        const cardEl = area.querySelector('.prospect-item[data-pid="' + id + '"]');
+        document.querySelectorAll('.customer-item.highlighted').forEach(el => el.classList.remove('highlighted'));
+        if(cardEl) {
+            cardEl.classList.add('highlighted');
+            const delta = cardEl.getBoundingClientRect().left - area.getBoundingClientRect().left;
+            area.scrollTo({ left: area.scrollLeft + delta - 10, behavior: 'smooth' });
+        }
+    }
+    function syncProspectBar() {
+        const t = document.getElementById('prospectToggle');
+        const o = document.getElementById('prospectOnlyToggle');
+        if(t) t.classList.toggle('on', prospectLayerOn);
+        if(o) { o.style.display = prospectLayerOn ? '' : 'none'; o.classList.toggle('on', prospectOnlyMode); }
+    }
+    function toggleProspectLayer() {
+        prospectLayerOn = !prospectLayerOn;
+        if(!prospectLayerOn) { prospectOnlyMode = false; highlightedProspectId = null; }
+        syncProspectBar();
+        render();
+    }
+    function toggleProspectOnly() {
+        prospectOnlyMode = !prospectOnlyMode;
+        if(prospectOnlyMode) prospectLayerOn = true;
+        syncProspectBar();
+        render();
+    }
 
     // カルーセルの終端が近づいたら次のカードを自動で足す
     (function(){
