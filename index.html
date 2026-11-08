@@ -707,6 +707,7 @@
     let db = [];
     let map, geocoder, AdvancedMarkerElement;
     let markers = [];
+    let markerPool = new Map();
     let infoWindow;
 
     /* 見込み店レイヤーの状態 */
@@ -1069,7 +1070,6 @@
 
     function updateMapPins(displayTargets) {
         if(!map || !AdvancedMarkerElement) return;
-        markers.forEach(m => m.setMap(null)); markers = [];
         const bounds = new google.maps.LatLngBounds(); let hasPin = false;
         
         const searchInput = normalize(document.getElementById('searchInput').value);
@@ -1118,39 +1118,57 @@
 
         const renderItems = pinItems;
 
+        const seenKeys = new Set();
         renderItems.forEach(it => {
             const key = it.key, group = it.group, first = it.first;
-            const isMe = it.isMe, isHit = it.isHit, isHighlighted = it.isHighlighted;
-            const pinView = document.createElement("div");
-            pinView.style.width = isHighlighted ? "32px" : "24px";
-            pinView.style.height = pinView.style.width;
-            let bgColor = isMe ? "#d9a94a" : "#3868a8";
-            if(isHighlighted) bgColor = "#FFD60A";
-            pinView.style.backgroundColor = bgColor;
-            pinView.style.borderRadius = "50% 50% 50% 0"; pinView.style.transform = "rotate(-45deg)"; pinView.style.border = "2.5px solid white"; pinView.style.boxShadow = "0 2px 5px rgba(0,0,0,0.2)";
-            const m = new AdvancedMarkerElement({ position: {lat:first.lat, lng:first.lng}, map: map, content: pinView, zIndex: isHighlighted ? 1000 : (isMe ? 100 : 1) });
-            m.addListener("click", () => {
-                isPinClick = true;
-                let idx = 0;
-                if(window._cycleKey === key && group.length > 1) { const cur = group.findIndex(c => c.id === highlightedId); if(cur >= 0) idx = (cur + 1) % group.length; }
-                window._cycleKey = key;
-                const firstC = group[idx];
-                if(!firstC) return;
-                highlightedId = firstC.id;
-                window._pinsNoFit = true;
-                if(window._lastDisplay) updateMapPins(window._lastDisplay);
-                const area = document.getElementById('result-area');
-                let cardEl = area.querySelector('.customer-item[data-id="' + firstC.id + '"]');
-                for(let i = 0; i < 30 && !cardEl && window._appendCards; i++) { const before = area.querySelectorAll('.customer-item').length; window._appendCards(); if(area.querySelectorAll('.customer-item').length === before) break; cardEl = area.querySelector('.customer-item[data-id="' + firstC.id + '"]'); }
-                document.querySelectorAll('.customer-item.highlighted').forEach(el => el.classList.remove('highlighted'));
-                if(cardEl) {
-                    cardEl.classList.add('highlighted');
-                    const delta = cardEl.getBoundingClientRect().left - area.getBoundingClientRect().left;
-                    area.scrollTo({ left: area.scrollLeft + delta - 10, behavior: 'smooth' });
-                }
-            });
-            markers.push(m); bounds.extend(m.position); hasPin = true;
+            const isMe = it.isMe, isHighlighted = it.isHighlighted;
+            seenKeys.add(key);
+            const sig = (isMe ? "1" : "0") + "|" + (isHighlighted ? "1" : "0");
+            let e = markerPool.get(key);
+            if(!e) {
+                e = { group: group, sig: "", marker: null };
+                const holder = e;
+                const m = new AdvancedMarkerElement({ position: { lat: first.lat, lng: first.lng }, map: map, content: document.createElement("div") });
+                m.addListener("click", () => {
+                    const group = holder.group;
+                    isPinClick = true;
+                    let idx = 0;
+                    if(window._cycleKey === key && group.length > 1) { const cur = group.findIndex(c => c.id === highlightedId); if(cur >= 0) idx = (cur + 1) % group.length; }
+                    window._cycleKey = key;
+                    const firstC = group[idx];
+                    if(!firstC) return;
+                    highlightedId = firstC.id;
+                    window._pinsNoFit = true;
+                    if(window._lastDisplay) updateMapPins(window._lastDisplay);
+                    const area = document.getElementById('result-area');
+                    let cardEl = area.querySelector('.customer-item[data-id="' + firstC.id + '"]');
+                    for(let i = 0; i < 30 && !cardEl && window._appendCards; i++) { const before = area.querySelectorAll('.customer-item').length; window._appendCards(); if(area.querySelectorAll('.customer-item').length === before) break; cardEl = area.querySelector('.customer-item[data-id="' + firstC.id + '"]'); }
+                    document.querySelectorAll('.customer-item.highlighted').forEach(el => el.classList.remove('highlighted'));
+                    if(cardEl) {
+                        cardEl.classList.add('highlighted');
+                        const delta = cardEl.getBoundingClientRect().left - area.getBoundingClientRect().left;
+                        area.scrollTo({ left: area.scrollLeft + delta - 10, behavior: 'smooth' });
+                    }
+                });
+                e.marker = m;
+                markerPool.set(key, e);
+            }
+            e.group = group;
+            if(e.sig !== sig) {
+                e.sig = sig;
+                const pinView = document.createElement("div");
+                pinView.style.width = isHighlighted ? "32px" : "24px";
+                pinView.style.height = pinView.style.width;
+                pinView.style.backgroundColor = isHighlighted ? "#FFD60A" : (isMe ? "#d9a94a" : "#3868a8");
+                pinView.style.borderRadius = "50% 50% 50% 0"; pinView.style.transform = "rotate(-45deg)"; pinView.style.border = "2.5px solid white"; pinView.style.boxShadow = "0 2px 5px rgba(0,0,0,0.2)";
+                e.marker.content = pinView;
+                e.marker.zIndex = isHighlighted ? 1000 : (isMe ? 100 : 1);
+            }
+            if(e.marker.map !== map) e.marker.map = map;
+            bounds.extend(e.marker.position); hasPin = true;
         });
+        markerPool.forEach((e, k) => { if(!seenKeys.has(k)) { e.marker.map = null; markerPool.delete(k); } });
+        markers = Array.from(markerPool.values()).map(e => e.marker);
         if(hasPin && !mapSyncMode && !watchId && !window._pinsNoFit) map.fitBounds(bounds);
         window._pinsNoFit = false;
         renderProspectPins(); renderConquest();
@@ -1657,27 +1675,40 @@
         prospectGeocoding = false;
     }
     let prospectPinSig = "";
+    let prospectPool = new Map();
     function renderProspectPins() {
         if(!map || !AdvancedMarkerElement) return;
-        if(prospectMode === 'off') { if(prospectMarkers.length) { prospectMarkers.forEach(m => m.setMap(null)); prospectMarkers = []; } prospectPinSig = "off"; return; }
+        if(prospectMode === 'off') { prospectPool.forEach(e => { e.marker.map = null; }); prospectPool.clear(); prospectMarkers = []; return; }
         let pinList = prospectDisplayList().slice(0, 300);
         if(highlightedProspectId && !pinList.some(p => p.id === highlightedProspectId)) { const hp = prospects.find(p => p.id === highlightedProspectId); if(hp) pinList = pinList.concat(hp); }
-        const sig = highlightedProspectId + "|" + pinList.map(p => p.id + "@" + (p.lat == null ? "" : p.lat) + "," + (p.lng == null ? "" : p.lng)).join(";");
-        if(sig === prospectPinSig) return;
-        prospectPinSig = sig;
-        prospectMarkers.forEach(m => m.setMap(null)); prospectMarkers = [];
+        const seen = new Set();
         pinList.forEach(p => {
             if(p.lat == null || p.lng == null) return;
+            seen.add(p.id);
             const sel = p.id === highlightedProspectId;
-            const pinView = document.createElement("div");
-            pinView.style.width = sel ? "30px" : "22px";
-            pinView.style.height = pinView.style.width;
-            pinView.style.backgroundColor = sel ? "#FFD60A" : "#7c8b9a";
-            pinView.style.borderRadius = "50% 50% 50% 0"; pinView.style.transform = "rotate(-45deg)"; pinView.style.border = "2.5px solid white"; pinView.style.boxShadow = "0 2px 5px rgba(0,0,0,0.2)";
-            const m = new AdvancedMarkerElement({ position: { lat: p.lat, lng: p.lng }, map: map, content: pinView, zIndex: sel ? 900 : 50 });
-            m.addListener("click", () => { isPinClick = true; selectProspect(p.id); });
-            prospectMarkers.push(m);
+            const sig = (sel ? "1" : "0") + "|" + p.lat + "," + p.lng;
+            let e = prospectPool.get(p.id);
+            if(!e) {
+                const m = new AdvancedMarkerElement({ position: { lat: p.lat, lng: p.lng }, map: map, content: document.createElement("div"), zIndex: 50 });
+                m.addListener("click", () => { isPinClick = true; selectProspect(p.id); });
+                e = { marker: m, sig: "" };
+                prospectPool.set(p.id, e);
+            }
+            if(e.sig !== sig) {
+                e.sig = sig;
+                const pinView = document.createElement("div");
+                pinView.style.width = sel ? "30px" : "22px";
+                pinView.style.height = pinView.style.width;
+                pinView.style.backgroundColor = sel ? "#FFD60A" : "#7c8b9a";
+                pinView.style.borderRadius = "50% 50% 50% 0"; pinView.style.transform = "rotate(-45deg)"; pinView.style.border = "2.5px solid white"; pinView.style.boxShadow = "0 2px 5px rgba(0,0,0,0.2)";
+                e.marker.content = pinView;
+                e.marker.position = { lat: p.lat, lng: p.lng };
+                e.marker.zIndex = sel ? 900 : 50;
+            }
+            if(e.marker.map !== map) e.marker.map = map;
         });
+        prospectPool.forEach((e, id) => { if(!seen.has(id)) { e.marker.map = null; prospectPool.delete(id); } });
+        prospectMarkers = Array.from(prospectPool.values()).map(e => e.marker);
     }
     function buildProspectCard(p) {
         const div = document.createElement('div');
