@@ -1530,8 +1530,8 @@
         if(!el) return;
         document.querySelectorAll('.customer-item.highlighted').forEach(x => x.classList.remove('highlighted'));
         el.classList.add('highlighted');
-        const delta = el.getBoundingClientRect().left - area.getBoundingClientRect().left;
-        area.scrollTo({ left: area.scrollLeft + delta - 10, behavior: 'auto' });
+        const aR2 = area.getBoundingClientRect(), cR2 = el.getBoundingClientRect();
+        area.scrollTo({ left: area.scrollLeft + (cR2.left - aR2.left) - (aR2.width - cR2.width) / 2, behavior: 'auto' });
     }
 
     function deleteCustomer() { if(confirm("このデータを削除しますか？")) { db = db.filter(x => x.id !== document.getElementById('edit-id').value); saveDB(); render(); closeModal(); } }
@@ -1917,8 +1917,8 @@
         document.querySelectorAll('.customer-item.highlighted').forEach(el => el.classList.remove('highlighted'));
         if(cardEl) {
             cardEl.classList.add('highlighted');
-            const delta = cardEl.getBoundingClientRect().left - area.getBoundingClientRect().left;
-            area.scrollTo({ left: area.scrollLeft + delta - 10, behavior: 'smooth' });
+            const aR = area.getBoundingClientRect(), cR = cardEl.getBoundingClientRect();
+            area.scrollTo({ left: area.scrollLeft + (cR.left - aR.left) - (aR.width - cR.width) / 2, behavior: 'smooth' });
         }
     }
     function syncProspectBar() {
