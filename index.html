@@ -496,7 +496,12 @@
             #result-area { align-items: stretch; }
         }
         .customer-item { height: auto; }
-        .customer-item .info-main { height: 47px; overflow: hidden; }
+        .customer-item .info-main { height: 70px; overflow: hidden; }
+        .customer-item .name-lines .company-name { white-space: normal; overflow: visible; }
+        .customer-item .name-lines .shop-name { line-height: 1.3; }
+        .name-lines.shop-l .shop-name { font-size: 0.9rem; }
+        .name-lines.shop-xl .shop-name { font-size: 0.8rem; line-height: 1.25; }
+        .name-lines.co-l .company-name { font-size: 0.62rem; }
         .customer-item .card-tel { height: 25px; }
         .customer-item .card-meta { height: 19px; white-space: nowrap; overflow: hidden; }
         .customer-item .card-addr-row { height: 37px; overflow: hidden; position: relative; }
@@ -1385,6 +1390,7 @@
             const creditHtml = c.credit ? `<span class="credit-alert">【${c.credit}】</span>` : "";
             const copySvg = '<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>';
             const np = splitName(c);
+            const fitCls = ((np.shop || "").length > 40 ? " shop-xl" : (np.shop || "").length > 21 ? " shop-l" : "") + ((np.company || "").length > 24 ? " co-l" : "");
             
             const div = document.createElement('div');
             div.className = 'customer-item'; div.dataset.id = c.id; if(c.id === highlightedId) div.classList.add('highlighted');
@@ -1392,7 +1398,7 @@
             div.innerHTML = `<div style="flex:1;">
                 <div class="info-main${np.company ? "" : " no-company"}">
                     <span class="status-dot" style="background:${color};"></span>
-                    <span class="name-lines">${np.company ? `<span class="company-name">${np.company}</span>` : ""}<span class="shop-name">${np.shop}</span></span>
+                    <span class="name-lines${fitCls}">${np.company ? `<span class="company-name">${np.company}</span>` : ""}<span class="shop-name">${np.shop}</span></span>
                     ${creditHtml}
                 </div>
                 ${c.tel ? `<div class="card-tel"><span>${c.tel}</span><button class="btn-copy" onclick="copyToClipboard('${c.tel}')" aria-label="電話番号をコピー">${copySvg}</button></div>` : ""}
@@ -1730,7 +1736,7 @@
         div.innerHTML = `<div style="flex:1;">
             <div class="info-main no-company">
                 <span class="status-dot" style="background:#7c8b9a;"></span>
-                <span class="name-lines"><span class="shop-name">${p.name}</span></span>
+                <span class="name-lines${p.name.length > 40 ? " shop-xl" : p.name.length > 21 ? " shop-l" : ""}"><span class="shop-name">${p.name}</span></span>
             </div>
             <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:2px;">
                 <span class="tag tag-prospect">未登録</span>
