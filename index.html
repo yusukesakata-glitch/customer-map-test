@@ -487,6 +487,19 @@
         .prospect-src a { color: #3868a8; text-decoration: none; font-weight: 600; }
         .conquest-btn { position: absolute; left: 10px; bottom: 318px; z-index: 41; background: rgba(255,255,255,0.96); border: 1px solid #d8e2ec; color: #536b7d; border-radius: 999px; padding: 8px 14px; min-height: 38px; font-size: 0.8rem; font-weight: 700; cursor: pointer; font-family: inherit; box-shadow: 0 2px 8px rgba(21,42,71,0.10); }
         .conquest-btn.on { background: var(--navy); color: #fff; border-color: var(--navy); }
+        @keyframes fxSwoop { 0% { transform: scale(1); } 35% { transform: scale(0.962); } 100% { transform: scale(1); } }
+        .fx-swoop { animation: fxSwoop 0.5s cubic-bezier(0.22, 0.9, 0.3, 1); }
+        @keyframes cardIn { from { opacity: 0; transform: translateX(26px); } to { opacity: 1; transform: translateX(0); } }
+        .fx-cards .customer-item { animation: cardIn 0.45s cubic-bezier(0.22, 0.9, 0.3, 1) both; }
+        .fx-cards .customer-item:nth-child(2) { animation-delay: 0.03s; }
+        .fx-cards .customer-item:nth-child(3) { animation-delay: 0.06s; }
+        .fx-cards .customer-item:nth-child(4) { animation-delay: 0.09s; }
+        .fx-cards .customer-item:nth-child(5) { animation-delay: 0.12s; }
+        .fx-cards .customer-item:nth-child(6) { animation-delay: 0.15s; }
+        .fx-cards .customer-item:nth-child(7) { animation-delay: 0.18s; }
+        .fx-cards .customer-item:nth-child(8) { animation-delay: 0.21s; }
+        @keyframes cqPop { 0% { transform: scale(0.5); opacity: 0; } 70% { transform: scale(1.12); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+        .cq-label { animation: cqPop 0.45s cubic-bezier(0.22, 0.9, 0.3, 1) both; }
         .town-bar { height: 8px; border-radius: 4px; background: #eef3f7; margin-top: 8px; overflow: hidden; }
         .town-fill { height: 8px; border-radius: 4px; }
     </style>
@@ -1770,6 +1783,7 @@
     }
     function rateColor(pct) { if(pct >= 80) return "#D9A94A"; if(pct >= 55) return "#3868a8"; if(pct >= 35) return "#7ea6c9"; if(pct >= 15) return "#9db8cc"; return "#c3d3e2"; }
     function toggleConquest() {
+        playSwitchFx();
         conquestMode = !conquestMode;
         document.getElementById('conquestBtn').classList.toggle('on', conquestMode);
         if(!conquestMode) clearConquest();
@@ -1792,6 +1806,7 @@
             circle.addListener("click", () => focusTown(g.key));
             conquestShapes.push(circle);
             const el = document.createElement("div");
+            el.className = "cq-label";
             el.textContent = g.label + " " + g.pct + "%";
             el.style.cssText = "background:rgba(255,255,255,0.92);border:1px solid #d8e2ec;color:#25475f;font-size:10px;font-weight:700;border-radius:999px;padding:2px 7px;white-space:nowrap;cursor:pointer;";
             const mk = new AdvancedMarkerElement({ position: { lat: g.lat, lng: g.lng }, map: map, content: el, zIndex: 60 });
@@ -1840,8 +1855,15 @@
         const r = document.getElementById('prospectRestore');
         if(r) r.style.display = prospectHiddenSet().size > 0 ? '' : 'none';
     }
+    function playSwitchFx() {
+        const w = document.querySelector('.map-wrapper');
+        if(w) { w.classList.remove('fx-swoop'); void w.offsetWidth; w.classList.add('fx-swoop'); }
+        const area = document.getElementById('result-area');
+        if(area) { area.classList.remove('fx-cards'); void area.offsetWidth; area.classList.add('fx-cards'); setTimeout(() => area.classList.remove('fx-cards'), 900); }
+    }
     function setProspectMode(m) {
         if(['both', 'only', 'off'].indexOf(m) === -1) return;
+        playSwitchFx();
         prospectMode = m;
         try { localStorage.setItem('map_prospect_mode', m); } catch(e) {}
         if(m === 'off') highlightedProspectId = null;
