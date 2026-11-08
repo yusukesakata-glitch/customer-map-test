@@ -472,7 +472,7 @@
         }
         .seg-btn {
             border: none; background: transparent; color: #536b7d; border-radius: 999px;
-            padding: 6px 13px; min-height: 32px; font-size: 0.78rem; font-weight: 700;
+            padding: 8px 14px; min-height: 38px; font-size: 0.8rem; font-weight: 700;
             cursor: pointer; font-family: inherit; white-space: nowrap;
         }
         .seg-btn.on { background: var(--navy); color: #fff; }
@@ -1380,7 +1380,7 @@
         const _take = () => { if(prospectMode === 'only') return; const part = displayTargets.slice(_shown, _shown + 60); part.forEach(buildCard); _shown += part.length; };
         _take();
         appendProspectCards(area);
-        window._appendCards = _take;
+        window._appendCards = () => { _take(); _takeProspects(area); };
     }
 
     function panToMap(id, lat, lng) {
@@ -1612,7 +1612,7 @@
     }
     async function maybeGeocodeProspects() {
         if(prospectGeocoding || !prospectsLoaded || !geocoder) return;
-        const targets = prospectCandidates().filter(p => p.lat == null || p.lng == null);
+        const targets = prospectDisplayList().filter(p => p.lat == null || p.lng == null).slice(0, 60);
         if(!targets.length) return;
         prospectGeocoding = true;
         for(const p of targets) {
@@ -1630,7 +1630,9 @@
         if(!map || !AdvancedMarkerElement) return;
         prospectMarkers.forEach(m => m.setMap(null)); prospectMarkers = [];
         if(prospectMode === 'off') return;
-        prospectCandidates().forEach(p => {
+        let pinList = prospectDisplayList().slice(0, 300);
+        if(highlightedProspectId && !pinList.some(p => p.id === highlightedProspectId)) { const hp = prospects.find(p => p.id === highlightedProspectId); if(hp) pinList = pinList.concat(hp); }
+        pinList.forEach(p => {
             if(p.lat == null || p.lng == null) return;
             const sel = p.id === highlightedProspectId;
             const pinView = document.createElement("div");
@@ -1685,9 +1687,31 @@
         if(p.lat != null && p.lng != null) { releaseFollow(); map.setZoom(17); map.panTo({ lat: p.lat, lng: p.lng }); }
         else maybeGeocodeProspects();
     }
+    let prospectOrder = [];
+    let prospectShown = 0;
+    function prospectDisplayList() {
+        const list = prospectCandidates().slice();
+        if(map && window.google && google.maps && google.maps.geometry) {
+            const c = map.getCenter();
+            if(c) list.sort((a, b) => {
+                const da = (a.lat != null && a.lng != null) ? google.maps.geometry.spherical.computeDistanceBetween(c, new google.maps.LatLng(a.lat, a.lng)) : 1e12;
+                const db = (b.lat != null && b.lng != null) ? google.maps.geometry.spherical.computeDistanceBetween(c, new google.maps.LatLng(b.lat, b.lng)) : 1e12;
+                return da - db;
+            });
+        }
+        return list;
+    }
+    function _takeProspects(area) {
+        if(prospectMode === 'off') return;
+        const part = prospectOrder.slice(prospectShown, prospectShown + 40);
+        part.forEach(p => area.appendChild(buildProspectCard(p)));
+        prospectShown += part.length;
+    }
     function appendProspectCards(area) {
         if(prospectMode === 'off') return;
-        prospectCandidates().forEach(p => area.appendChild(buildProspectCard(p)));
+        prospectOrder = prospectDisplayList();
+        prospectShown = 0;
+        _takeProspects(area);
     }
     function selectProspect(id) {
         highlightedProspectId = id;
