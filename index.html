@@ -491,6 +491,10 @@
         .seg-thumb { position: absolute; top: 3px; bottom: 3px; left: 0; background: var(--navy); border-radius: 999px; z-index: 0; transition: transform 0.38s cubic-bezier(0.22, 0.9, 0.3, 1), width 0.38s cubic-bezier(0.22, 0.9, 0.3, 1); }
         .town-bar { height: 8px; border-radius: 4px; background: #eef3f7; margin-top: 8px; overflow: hidden; }
         .town-fill { height: 8px; border-radius: 4px; }
+        @media (min-width: 900px) {
+            .right-section > .btn-current-loc { position: absolute; top: 64px; right: 12px; bottom: auto; margin: 0; align-self: auto; z-index: 45; }
+            .customer-item { height: 232px; }
+        }
     </style>
 </head>
 <body>
