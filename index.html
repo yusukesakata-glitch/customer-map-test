@@ -475,7 +475,8 @@
             padding: 8px 14px; min-height: 38px; font-size: 0.8rem; font-weight: 700;
             cursor: pointer; font-family: inherit; white-space: nowrap;
         }
-        .seg-btn.on { background: var(--navy); color: #fff; }
+        .seg-btn { position: relative; z-index: 1; transition: color 0.25s; }
+        .seg-btn.on { background: transparent; color: #fff; }
         .prospect-restore {
             position: absolute; left: 10px; bottom: 366px; z-index: 41;
             background: rgba(255,255,255,0.96); border: 1px solid #d8e2ec; color: #536b7d;
@@ -485,21 +486,9 @@
         .customer-item .tag-prospect { background: #eef1f4 !important; border: 1px solid #d5dde4 !important; color: #5b6b7a !important; font-weight: 700; }
         .customer-item .tag-permit { background: #fdf6e0 !important; border: 1px solid #e8d48b !important; color: #8a6d1f !important; font-weight: 700; }
         .prospect-src a { color: #3868a8; text-decoration: none; font-weight: 600; }
-        .conquest-btn { position: absolute; left: 10px; bottom: 318px; z-index: 41; background: rgba(255,255,255,0.96); border: 1px solid #d8e2ec; color: #536b7d; border-radius: 999px; padding: 8px 14px; min-height: 38px; font-size: 0.8rem; font-weight: 700; cursor: pointer; font-family: inherit; box-shadow: 0 2px 8px rgba(21,42,71,0.10); }
+        .conquest-btn { position: absolute; left: 10px; bottom: 318px; z-index: 41; background: rgba(255,255,255,0.96); border: 1px solid #d8e2ec; color: #536b7d; border-radius: 999px; padding: 8px 14px; min-height: 38px; font-size: 0.8rem; font-weight: 700; cursor: pointer; font-family: inherit; box-shadow: 0 2px 8px rgba(21,42,71,0.10); transition: background 0.25s, color 0.25s, border-color 0.25s; }
         .conquest-btn.on { background: var(--navy); color: #fff; border-color: var(--navy); }
-        @keyframes fxSwoop { 0% { transform: scale(1); } 35% { transform: scale(0.962); } 100% { transform: scale(1); } }
-        .fx-swoop { animation: fxSwoop 0.5s cubic-bezier(0.22, 0.9, 0.3, 1); }
-        @keyframes cardIn { from { opacity: 0; transform: translateX(26px); } to { opacity: 1; transform: translateX(0); } }
-        .fx-cards .customer-item { animation: cardIn 0.45s cubic-bezier(0.22, 0.9, 0.3, 1) both; }
-        .fx-cards .customer-item:nth-child(2) { animation-delay: 0.03s; }
-        .fx-cards .customer-item:nth-child(3) { animation-delay: 0.06s; }
-        .fx-cards .customer-item:nth-child(4) { animation-delay: 0.09s; }
-        .fx-cards .customer-item:nth-child(5) { animation-delay: 0.12s; }
-        .fx-cards .customer-item:nth-child(6) { animation-delay: 0.15s; }
-        .fx-cards .customer-item:nth-child(7) { animation-delay: 0.18s; }
-        .fx-cards .customer-item:nth-child(8) { animation-delay: 0.21s; }
-        @keyframes cqPop { 0% { transform: scale(0.5); opacity: 0; } 70% { transform: scale(1.12); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
-        .cq-label { animation: cqPop 0.45s cubic-bezier(0.22, 0.9, 0.3, 1) both; }
+        .seg-thumb { position: absolute; top: 3px; bottom: 3px; left: 0; background: var(--navy); border-radius: 999px; z-index: 0; transition: transform 0.38s cubic-bezier(0.22, 0.9, 0.3, 1), width 0.38s cubic-bezier(0.22, 0.9, 0.3, 1); }
         .town-bar { height: 8px; border-radius: 4px; background: #eef3f7; margin-top: 8px; overflow: hidden; }
         .town-fill { height: 8px; border-radius: 4px; }
     </style>
@@ -1783,7 +1772,6 @@
     }
     function rateColor(pct) { if(pct >= 80) return "#D9A94A"; if(pct >= 55) return "#3868a8"; if(pct >= 35) return "#7ea6c9"; if(pct >= 15) return "#9db8cc"; return "#c3d3e2"; }
     function toggleConquest() {
-        playSwitchFx();
         conquestMode = !conquestMode;
         document.getElementById('conquestBtn').classList.toggle('on', conquestMode);
         if(!conquestMode) clearConquest();
@@ -1806,7 +1794,6 @@
             circle.addListener("click", () => focusTown(g.key));
             conquestShapes.push(circle);
             const el = document.createElement("div");
-            el.className = "cq-label";
             el.textContent = g.label + " " + g.pct + "%";
             el.style.cssText = "background:rgba(255,255,255,0.92);border:1px solid #d8e2ec;color:#25475f;font-size:10px;font-weight:700;border-radius:999px;padding:2px 7px;white-space:nowrap;cursor:pointer;";
             const mk = new AdvancedMarkerElement({ position: { lat: g.lat, lng: g.lng }, map: map, content: el, zIndex: 60 });
@@ -1837,6 +1824,46 @@
             area.appendChild(div);
         });
     }
+    (function initSegDrag() {
+        const bar = document.querySelector('.seg-bar');
+        if(!bar) return;
+        let drag = null;
+        bar.addEventListener('pointerdown', (e) => {
+            const thumb = bar.querySelector('.seg-thumb');
+            if(!thumb) return;
+            drag = { x: e.clientX, moved: false };
+            thumb.style.transition = 'none';
+        });
+        bar.addEventListener('pointermove', (e) => {
+            if(!drag) return;
+            if(Math.abs(e.clientX - drag.x) > 6) drag.moved = true;
+            if(!drag.moved) return;
+            const thumb = bar.querySelector('.seg-thumb');
+            if(!thumb) return;
+            const r = bar.getBoundingClientRect();
+            const w = thumb.offsetWidth;
+            let x = e.clientX - r.left - w / 2;
+            x = Math.max(3, Math.min(r.width - 3 - w, x));
+            thumb.style.transform = 'translateX(' + x + 'px)';
+        });
+        const end = (e) => {
+            if(!drag) return;
+            const wasDrag = drag.moved;
+            drag = null;
+            const thumb = bar.querySelector('.seg-thumb');
+            if(thumb) thumb.style.transition = '';
+            if(wasDrag) {
+                window._segDragAt = Date.now();
+                const btns = Array.from(bar.querySelectorAll('.seg-btn'));
+                const hit = btns.find(b => { const br = b.getBoundingClientRect(); return e.clientX >= br.left && e.clientX <= br.right; });
+                if(hit) setProspectMode(hit.dataset.pmode, true);
+                else positionSegThumb();
+            }
+        };
+        bar.addEventListener('pointerup', end);
+        bar.addEventListener('pointercancel', end);
+        window.addEventListener('resize', () => positionSegThumb(false));
+    })();
     function selectProspect(id) {
         highlightedProspectId = id;
         highlightedId = null;
@@ -1852,18 +1879,25 @@
     }
     function syncProspectBar() {
         document.querySelectorAll('.seg-btn[data-pmode]').forEach(b => b.classList.toggle('on', b.dataset.pmode === prospectMode));
+        positionSegThumb();
         const r = document.getElementById('prospectRestore');
         if(r) r.style.display = prospectHiddenSet().size > 0 ? '' : 'none';
     }
-    function playSwitchFx() {
-        const w = document.querySelector('.map-wrapper');
-        if(w) { w.classList.remove('fx-swoop'); void w.offsetWidth; w.classList.add('fx-swoop'); }
-        const area = document.getElementById('result-area');
-        if(area) { area.classList.remove('fx-cards'); void area.offsetWidth; area.classList.add('fx-cards'); setTimeout(() => area.classList.remove('fx-cards'), 900); }
+    function positionSegThumb(animate) {
+        const bar = document.querySelector('.seg-bar');
+        if(!bar) return;
+        const btn = bar.querySelector('.seg-btn.on');
+        if(!btn) return;
+        let thumb = bar.querySelector('.seg-thumb');
+        if(!thumb) { thumb = document.createElement('div'); thumb.className = 'seg-thumb'; bar.insertBefore(thumb, bar.firstChild); }
+        if(animate === false) thumb.style.transition = 'none'; else thumb.style.transition = '';
+        thumb.style.width = btn.offsetWidth + 'px';
+        thumb.style.transform = 'translateX(' + btn.offsetLeft + 'px)';
+        if(animate === false) requestAnimationFrame(() => { thumb.style.transition = ''; });
     }
-    function setProspectMode(m) {
+    function setProspectMode(m, fromDrag) {
         if(['both', 'only', 'off'].indexOf(m) === -1) return;
-        playSwitchFx();
+        if(!fromDrag && window._segDragAt && Date.now() - window._segDragAt < 350) return;
         prospectMode = m;
         try { localStorage.setItem('map_prospect_mode', m); } catch(e) {}
         if(m === 'off') highlightedProspectId = null;
