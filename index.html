@@ -645,6 +645,8 @@
         <label>住所</label><input type="text" id="pedit-addr">
         <label>電話番号</label><input type="text" id="pedit-tel">
         <label>最寄り駅</label><input type="text" id="pedit-station">
+        <label>求人サイト名</label><input type="text" id="pedit-jobsrc">
+        <label>求人ページURL</label><input type="text" id="pedit-joburl">
         <label>メモ</label>
         <textarea id="pedit-note" style="height:80px;"></textarea>
         <div style="display:flex; gap:15px; margin-top:30px;">
@@ -1659,6 +1661,7 @@
             <div class="card-addr-row"><span class="card-addr">${p.address}</span></div>
             ${p.openLabel ? `<div class="info-sub" style="margin-top:5px;">${p.openLabel}</div>` : ""}
             ${p.source ? `<div class="info-sub prospect-src">出典：${p.sourceUrl ? `<a href="${p.sourceUrl}" target="_blank" rel="noopener">${p.source}</a>` : p.source}</div>` : ""}
+            ${p.jobUrl ? `<div class="info-sub prospect-src">求人：<a href="${p.jobUrl}" target="_blank" rel="noopener">${p.jobSource || "求人ページ"}</a></div>` : ""}
             ${p.note ? `<div class="note-box">${p.note}</div>` : ""}
         </div>
         <div class="action-area">
@@ -1727,6 +1730,8 @@
         document.getElementById('pedit-addr').value = p.address || "";
         document.getElementById('pedit-tel').value = p.tel || "";
         document.getElementById('pedit-station').value = p.station || "";
+        document.getElementById('pedit-jobsrc').value = p.jobSource || "";
+        document.getElementById('pedit-joburl').value = p.jobUrl || "";
         document.getElementById('pedit-note').value = p.note || "";
         const edits = loadProspectEdits();
         document.getElementById('pedit-reset').style.display = edits[p.id] ? '' : 'none';
@@ -1747,10 +1752,12 @@
             address: document.getElementById('pedit-addr').value.trim(),
             tel: document.getElementById('pedit-tel').value.trim(),
             station: document.getElementById('pedit-station').value.trim(),
+            jobSource: document.getElementById('pedit-jobsrc').value.trim(),
+            jobUrl: document.getElementById('pedit-joburl').value.trim(),
             note: document.getElementById('pedit-note').value
         };
         const override = {};
-        ['name', 'genre', 'address', 'tel', 'station'].forEach(k => { if(form[k] !== (base[k] || "")) override[k] = form[k]; });
+        ['name', 'genre', 'address', 'tel', 'station', 'jobSource', 'jobUrl'].forEach(k => { if(form[k] !== (base[k] || "")) override[k] = form[k]; });
         if(form.note) override.note = form.note;
         const edits = loadProspectEdits();
         if(Object.keys(override).length) edits[id] = override; else delete edits[id];

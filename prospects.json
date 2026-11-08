@@ -11,7 +11,9 @@
   "sourceUrl": "https://town-night.jp/kanagawa/a_322/shop/016982/",
   "station": "川崎駅 徒歩6分",
   "status": "open",
-  "tel": "044-222-2070"
+  "tel": "044-222-2070",
+  "jobSource": "ポケパラ体入",
+  "jobUrl": "https://www.pokepara-tainew.jp/kanagawa/m22/a10336/shop24766/"
  },
  {
   "address": "神奈川県川崎市川崎区砂子2-3-12 第40東京ビルB1F",
@@ -25,7 +27,9 @@
   "sourceUrl": "https://town-night.jp/kanagawa/a_322/shop/016363/",
   "station": "川崎駅 徒歩5分",
   "status": "open",
-  "tel": null
+  "tel": null,
+  "jobSource": "ポケパラ体入",
+  "jobUrl": "https://www.pokepara-tainew.jp/kanagawa/m22/a10336/shop7738/"
  },
  {
   "address": "神奈川県川崎市川崎区東田町4-3",
@@ -123,7 +127,9 @@
   "sourceUrl": "https://www.pokepara.jp/kanagawa/m22/a10336/shop15361/",
   "status": "open",
   "lat": null,
-  "lng": null
+  "lng": null,
+  "jobSource": "ポケパラ体入",
+  "jobUrl": "https://www.pokepara-tainew.jp/kanagawa/m22/a10336/shop15361/"
  },
  {
   "id": "velvet",
