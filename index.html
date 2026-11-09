@@ -516,6 +516,17 @@
         .customer-item .card-addr { padding-right: 30px; }
         .customer-item .card-addr-row .btn-copy { position: absolute; top: -1px; right: 0; height: 20px; min-height: 20px; padding: 2px; margin: 0; }
         .customer-item .note-box { height: 31px; }
+        /* PC向けコンパクト表示：カードを小さくし、引き伸ばしによる下の余白をなくす */
+        @media (min-width: 900px) {
+            #result-area { align-items: flex-start; }
+            .customer-item { flex-basis: 320px; max-width: 320px; padding: 12px 13px; }
+            .customer-item .info-main { height: 58px; }
+            .customer-item .card-tel { height: 22px; }
+            .customer-item .card-addr-row { height: 32px; }
+            .customer-item .note-box { height: 28px; }
+            .customer-item .action-area { margin-top: 10px; }
+            .customer-item .action-btn { min-height: 38px; }
+        }
     </style>
 </head>
 <body>
