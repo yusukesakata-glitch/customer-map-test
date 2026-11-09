@@ -755,6 +755,9 @@
     if(['both', 'only', 'off'].indexOf(prospectMode) === -1) prospectMode = 'both';
     let highlightedProspectId = null;
     let prospectsLoaded = false;
+    // 見込み店レイヤーはテスト版（customer-map-test）でのみ有効。本番では読み込まず、UIも出さない
+    const PROSPECTS_ON = /customer-map-test/.test(location.pathname);
+    if (!PROSPECTS_ON) prospectMode = 'off';
     let prospectGeocoding = false;
     function loadProspectEdits() { try { return JSON.parse(localStorage.getItem('map_prospect_edits') || "{}"); } catch(e) { return {}; } }
     function saveProspectEdits(edits) { try { localStorage.setItem('map_prospect_edits', JSON.stringify(edits)); } catch(e) {} }
@@ -789,8 +792,8 @@
         } else {
             document.getElementById('map-placeholder-msg').innerHTML = "設定からAPIキーを<br>設定してください";
         }
-        syncProspectBar();
-        loadProspects();
+        if (PROSPECTS_ON) { syncProspectBar(); loadProspects(); }
+        else { document.querySelectorAll('.prospect-bar, .conquest-btn, .prospect-restore').forEach(el => { el.style.display = 'none'; }); }
         updateStorageInfo();
 
     };
@@ -2017,6 +2020,7 @@
         }
     }
     function syncProspectBar() {
+        if (!PROSPECTS_ON) { const r0 = document.getElementById('prospectRestore'); if (r0) r0.style.display = 'none'; return; }
         document.querySelectorAll('.seg-btn[data-pmode]').forEach(b => b.classList.toggle('on', b.dataset.pmode === prospectMode));
         positionSegThumb();
         const r = document.getElementById('prospectRestore');
@@ -2035,6 +2039,7 @@
         if(animate === false) requestAnimationFrame(() => { thumb.style.transition = ''; });
     }
     function setProspectMode(m, fromDrag) {
+        if (!PROSPECTS_ON) return;
         if(['both', 'only', 'off'].indexOf(m) === -1) return;
         if(!fromDrag && window._segDragAt && Date.now() - window._segDragAt < 350) return;
         prospectMode = m;
