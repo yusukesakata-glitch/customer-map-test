@@ -494,11 +494,7 @@
         .customer-item .tag-prospect { background: #eef1f4 !important; border: 1px solid #d5dde4 !important; color: #5b6b7a !important; font-weight: 700; }
         .customer-item .tag-permit { background: #fdf6e0 !important; border: 1px solid #e8d48b !important; color: #8a6d1f !important; font-weight: 700; }
         .prospect-src a { color: #3868a8; text-decoration: none; font-weight: 600; }
-        .conquest-btn { position: absolute; left: 10px; bottom: 318px; z-index: 41; background: rgba(255,255,255,0.96); border: 1px solid #d8e2ec; color: #536b7d; border-radius: 999px; padding: 8px 14px; min-height: 38px; font-size: 0.8rem; font-weight: 700; cursor: pointer; font-family: inherit; box-shadow: 0 2px 8px rgba(21,42,71,0.10); transition: background 0.25s, color 0.25s, border-color 0.25s; }
-        .conquest-btn.on { background: var(--navy); color: #fff; border-color: var(--navy); }
         .seg-thumb { position: absolute; top: 3px; bottom: 3px; left: 0; background: var(--navy); border-radius: 999px; z-index: 0; transition: transform 0.38s cubic-bezier(0.22, 0.9, 0.3, 1), width 0.38s cubic-bezier(0.22, 0.9, 0.3, 1); }
-        .town-bar { height: 8px; border-radius: 4px; background: #eef3f7; margin-top: 8px; overflow: hidden; }
-        .town-fill { height: 8px; border-radius: 4px; }
         @media (min-width: 900px) {
             .right-section > .btn-current-loc { position: absolute; top: 64px; right: 12px; bottom: auto; margin: 0; align-self: auto; z-index: 45; }
             #result-area { align-items: stretch; }
@@ -543,7 +539,6 @@
                 <button class="seg-btn" data-pmode="only" onclick="setProspectMode('only')">見込みのみ</button>
                 <button class="seg-btn" data-pmode="off" onclick="setProspectMode('off')">顧客のみ</button>
             </div>
-            <button class="conquest-btn" id="conquestBtn" onclick="toggleConquest()">制覇マップ</button>
         </div>
     </div>
 
@@ -793,7 +788,7 @@
             document.getElementById('map-placeholder-msg').innerHTML = "設定からAPIキーを<br>設定してください";
         }
         if (PROSPECTS_ON) { syncProspectBar(); loadProspects(); }
-        else { document.querySelectorAll('.prospect-bar, .conquest-btn, .prospect-restore').forEach(el => { el.style.display = 'none'; }); }
+        else { document.querySelectorAll('.prospect-bar, .prospect-restore').forEach(el => { el.style.display = 'none'; }); }
         updateStorageInfo();
 
     };
@@ -1211,7 +1206,7 @@
         markers = Array.from(markerPool.values()).map(e => e.marker);
         if(hasPin && !mapSyncMode && !watchId && !window._pinsNoFit) map.fitBounds(bounds);
         window._pinsNoFit = false;
-        renderProspectPins(); renderConquest();
+        renderProspectPins();
     }
 
     function getPrefecture(a) { const m=a.match(/(...??[都道府県])/); return m?m[1]:"その他"; }
@@ -1510,16 +1505,11 @@
             </div>`;
             area.appendChild(div);
         };
-        if(conquestMode) {
-            buildTownCards(area);
-            window._appendCards = () => {};
-        } else {
-            let _shown = 0;
-            const _take = () => { if(prospectMode === 'only') return; const part = displayTargets.slice(_shown, _shown + 60); part.forEach(buildCard); _shown += part.length; };
-            _take();
-            appendProspectCards(area);
-            window._appendCards = () => { _take(); _takeProspects(area); };
-        }
+        let _shown = 0;
+        const _take = () => { if(prospectMode === 'only') return; const part = displayTargets.slice(_shown, _shown + 60); part.forEach(buildCard); _shown += part.length; };
+        _take();
+        appendProspectCards(area);
+        window._appendCards = () => { _take(); _takeProspects(area); };
     }
 
     function panToMap(id, lat, lng) {
@@ -1887,83 +1877,6 @@
         prospectOrder = prospectDisplayList();
         prospectShown = 0;
         _takeProspects(area);
-    }
-    let conquestMode = false;
-    let conquestShapes = [];
-    let conquestCache = null, conquestCacheKey = "";
-    function townLabel(full) { const i = full.lastIndexOf("区"); if(i >= 0) return full.slice(i + 1); const j = full.indexOf("市"); if(j >= 0) return full.slice(j + 1); return full; }
-    function townStats() {
-        const key = db.length + "|" + targetReps.join(",") + "|" + (db[0] ? db[0].id : "");
-        if(conquestCache && conquestCacheKey === key) return conquestCache;
-        const base = targetReps.length ? db.filter(d => targetReps.includes(d.rep_name)) : db;
-        const groups = {};
-        base.forEach(d => {
-            if((d.credit || "") === "現存せず") return;
-            const k = addrParts(d.address).town;
-            if(!k) return;
-            if(!groups[k]) groups[k] = { key: k, label: townLabel(k), total: 0, visited: 0, latSum: 0, lngSum: 0, geoN: 0 };
-            const g = groups[k];
-            g.total++;
-            if(VISIT_DATE_RE.test(d.note || "")) g.visited++;
-            if(typeof d.lat === "number" && typeof d.lng === "number" && d.lat && d.lng) { g.latSum += d.lat; g.lngSum += d.lng; g.geoN++; }
-        });
-        conquestCache = Object.values(groups).map(g => ({ key: g.key, label: g.label, total: g.total, visited: g.visited, pct: g.total ? Math.round(g.visited / g.total * 100) : 0, lat: g.geoN ? g.latSum / g.geoN : null, lng: g.geoN ? g.lngSum / g.geoN : null }));
-        conquestCacheKey = key;
-        return conquestCache;
-    }
-    function rateColor(pct) { if(pct >= 80) return "#D9A94A"; if(pct >= 55) return "#3868a8"; if(pct >= 35) return "#7ea6c9"; if(pct >= 15) return "#9db8cc"; return "#c3d3e2"; }
-    function toggleConquest() {
-        conquestMode = !conquestMode;
-        document.getElementById('conquestBtn').classList.toggle('on', conquestMode);
-        if(!conquestMode) clearConquest();
-        render();
-    }
-    function clearConquest() { conquestShapes.forEach(s => { if(s.setMap) s.setMap(null); }); conquestShapes = []; }
-    function renderConquest() {
-        clearConquest();
-        if(!conquestMode || !map || !window.google || !google.maps) return;
-        const b = map.getBounds();
-        let list = townStats().filter(g => g.lat != null && g.lng != null);
-        if(b) list = list.filter(g => b.contains(new google.maps.LatLng(g.lat, g.lng)));
-        const zoom = map.getZoom() || 15;
-        if(zoom < 12) list = list.filter(g => g.total >= 5);
-        list.sort((a, b2) => b2.total - a.total);
-        list = list.slice(0, zoom < 12 ? 15 : 40);
-        list.forEach(g => {
-            if(g.lat == null || g.lng == null) return;
-            const circle = new google.maps.Circle({ map: map, center: { lat: g.lat, lng: g.lng }, radius: Math.max(130, Math.min(650, 110 + Math.sqrt(g.total) * 55)), fillColor: rateColor(g.pct), fillOpacity: 0.42, strokeColor: "#ffffff", strokeWeight: 1.5, clickable: true, zIndex: 40 });
-            circle.addListener("click", () => focusTown(g.key));
-            conquestShapes.push(circle);
-            const el = document.createElement("div");
-            el.textContent = g.label + " " + g.pct + "%";
-            el.style.cssText = "background:rgba(255,255,255,0.92);border:1px solid #d8e2ec;color:#25475f;font-size:10px;font-weight:700;border-radius:999px;padding:2px 7px;white-space:nowrap;cursor:pointer;";
-            const mk = new AdvancedMarkerElement({ position: { lat: g.lat, lng: g.lng }, map: map, content: el, zIndex: 60 });
-            mk.addListener("click", () => focusTown(g.key));
-            conquestShapes.push(mk);
-        });
-    }
-    function focusTown(key) {
-        conquestMode = false;
-        document.getElementById('conquestBtn').classList.remove('on');
-        clearConquest();
-        document.getElementById('searchInput').value = key;
-        doSearch();
-    }
-    function buildTownCards(area) {
-        const stats = townStats().slice().sort((a, b) => b.pct - a.pct || b.total - a.total);
-        const tv = stats.reduce((s, g) => s + g.visited, 0), tt = stats.reduce((s, g) => s + g.total, 0);
-        const tpct = tt ? Math.round(tv / tt * 100) : 0;
-        const head = document.createElement('div');
-        head.className = 'customer-item';
-        head.innerHTML = `<div style="flex:1;"><div class="info-main no-company"><span class="shop-name">エリア制覇 ${tpct}%</span></div><div class="card-meta"><span>${targetReps.length ? "自分の担当" : "全担当"}：訪問済み ${tv} / ${tt}件</span></div><div class="town-bar"><div class="town-fill" style="width:${tpct}%;background:${rateColor(tpct)};"></div></div><div class="info-sub" style="margin-top:6px;">町をタップすると、その町の店が表示されます</div></div>`;
-        area.appendChild(head);
-        stats.forEach(g => {
-            const div = document.createElement('div');
-            div.className = 'customer-item';
-            div.innerHTML = `<div style="flex:1;"><div class="info-main no-company"><span class="shop-name">${g.label}</span></div><div class="card-meta"><span>訪問済み ${g.visited} / ${g.total}件（${g.pct}%）</span><span class="meta-sep"></span><span>未訪問 ${g.total - g.visited}件</span></div><div class="town-bar"><div class="town-fill" style="width:${g.pct}%;background:${rateColor(g.pct)};"></div></div></div>`;
-            div.addEventListener('click', () => focusTown(g.key));
-            area.appendChild(div);
-        });
     }
     (function initSegDrag() {
         const bar = document.querySelector('.seg-bar');
