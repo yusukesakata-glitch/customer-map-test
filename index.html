@@ -523,6 +523,11 @@
             .customer-item .action-area { margin-top: 10px; }
             .customer-item .action-btn { min-height: 38px; }
         }
+        /* スマホ向け：店名・住所の固定高さをやめて中身に合わせ、下揃えのまま余白を詰める */
+        @media (max-width: 899px) {
+            .customer-item .info-main { height: auto; min-height: 32px; }
+            .customer-item .card-addr-row { height: auto; min-height: 19px; }
+        }
     </style>
 </head>
 <body>
